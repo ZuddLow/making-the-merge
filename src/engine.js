@@ -120,7 +120,8 @@ const LOCS = [
   { id: 'island', name: 'Island of the Idols', text: 'End of each turn: cards here get +1 influence.' },
   { id: 'flintreward', name: 'Flint Reward', text: 'Each card you play here gives you +1 fire next turn.' },
   { id: 'outback', name: 'The Outback', text: 'When revealed, the game lasts 7 turns.' },
-  { id: 'urn', name: 'The Voting Booth', text: 'Cards played here stay face-down until the game ends.' }
+  { id: 'urn', name: 'The Voting Booth', text: 'Cards played here stay face-down until the game ends.' },
+  { id: 'bench', name: 'Sit-Out Bench', text: "On Reveal abilities don't happen here." }
 ];
 const LOC = Object.fromEntries(LOCS.map(l => [l.id, l]));
 
@@ -304,7 +305,9 @@ function playEffects(g, c, li, p) {
       if (L.id === 'idolspot' && !L.idolGiven[p]) { L.idolGiven[p] = true; c.idol = true; emit(g, { t: 'gotidol', uid: c.uid, id: c.id }); }
     }
   }
-  switch (c.id) {
+  const benched = live(L) && L.id === 'bench' && def.kw === 'reveal'; // On Reveal cards (Scenarios too) sit this one out
+  if (benched) emit(g, { t: 'benched', uid: c.uid, id: c.id });
+  if (!benched) switch (c.id) {
     case 'cochran': draw(g, p); break;
     case 'maryanne': if (L.sides[op].some(o => power(g, o) > power(g, c))) c.perm += 3; break;
     case 'tony': if (g.turnPlays[op].includes(li)) c.perm += 3; break;
@@ -406,7 +409,7 @@ function playEffects(g, c, li, p) {
     case 'blindside': { const t = maxBy(L.sides[op], o => power(g, o)); if (t) voteOut(g, t); break; }
   }
   const P = g.players[p];
-  if (c.id === 'kelly') P.kellyArm = true;
+  if (c.id === 'kelly') { if (!benched) P.kellyArm = true; }
   else if (P.kellyArm && def.type !== 'event' && c.loc >= 0 && c.owner === p) {
     P.kellyArm = false;
     const from = g.locs[c.loc], to = c.loc - 1, T = g.locs[to];
