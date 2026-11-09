@@ -1665,7 +1665,7 @@ function renderCollection() {
 }
 $('colGrid').addEventListener('click', e => {
   const t = e.target.closest('.tile'); if (!t) return;
-  const id = t.dataset.id, own = save.owned[id], tier = TIERS_INFO[CARD_TIER[id]];
+  const id = t.dataset.id, own = save.owned[id], tier = tierOf(id);
   const note = !isOut(id) ? 'Held: only you can see this card. Release it from Designer → Releases.' : own ? 'In your collection.' : tierUnlocked(CARD_TIER[id]) ? 'Not found yet. It can arrive in Tree Mail.' : `Not found yet. ${tier.name} cards unlock at ${tier.rank}.`;
   gameQuickView({ id }, { note, locked: !own });
 });
@@ -1726,7 +1726,7 @@ function renderEditor() {
   $('deckDelete').textContent = delArmed ? 'Tap again to delete' : 'Delete deck';
 }
 function quickView(id) {
-  const d = CARD[id], own = canUse(id), inDeck = edit && edit.cards.includes(id), tier = TIERS_INFO[CARD_TIER[id]];
+  const d = CARD[id], own = canUse(id), inDeck = edit && edit.cards.includes(id), tier = tierOf(id);
   const lockMsg = !isOut(id) ? 'Held: only you can see and playtest this card.' : save.owned[id] ? 'In your collection.' : own ? "Not in your collection, but you can playtest it. Matches with a playtest deck don't change votes, rice or stats." : tierUnlocked(CARD_TIER[id]) ? `Not found yet. It can arrive in Tree Mail.` : `Not found yet. ${tier.name} cards unlock at ${tier.rank}.`;
   const act = !edit ? '' : !own ? '<button class="btn" disabled>Locked</button>' : inDeck ? '<button class="btn" id="qvAct">Remove from deck</button>' : `<button class="btn primary" id="qvAct" ${edit.cards.length >= 12 ? 'disabled' : ''}>${edit.cards.length >= 12 ? 'Deck is full' : 'Add to deck'}</button>`;
   $('panel').className = 'panel';
@@ -1799,7 +1799,7 @@ function renderArt() {
   $('tabLocs').setAttribute('aria-selected', artTab === 'locs');
   $('tiles').className = 'tiles' + (artTab === 'locs' ? ' locs' : '');
   if (artTab === 'cards') {
-    $('tiles').innerHTML = CARDS.filter(c => !c.token).concat([CARD.goat]).sort((a, b) => a.cost - b.cost || a.short.localeCompare(b.short))
+    $('tiles').innerHTML = CARDS.slice().sort((a, b) => a.cost - b.cost || a.short.localeCompare(b.short))
       .map(d => `<button class="tile" data-kind="cards" data-id="${d.id}">${cardHTML(d.id)}<span class="${hasArt(ART.cards[d.id]) ? 'has' : ''}">${hasArt(ART.cards[d.id]) ? 'Has art' : 'Add photo'}</span></button>`).join('');
   } else {
     $('tiles').innerHTML = LOCS.map(l => { const a = ART.locs[l.id];
@@ -2307,8 +2307,11 @@ $('quitBtn').onclick = () => {
 function closeInspect() { $('inspect').hidden = true; }
 $('inspect').addEventListener('click', closeInspect);
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('inspect').hidden) closeInspect(); });
+// Tokens aren't collected, so they have no tier: label them by the card that makes them
+const TOKEN_FROM = { rat: 'Sue Hawk', snake: 'Sue Hawk', goat: 'Brian Heidik', fakeidol: 'Bob Crowley' };
+const tierOf = id => TIERS_INFO[CARD_TIER[id]] || { name: CARD[id] && CARD[id].token ? `Token${TOKEN_FROM[id] ? ' from ' + TOKEN_FROM[id] : ''}` : '' };
 function gameQuickView(c, ctx = {}) {
-  const d = CARD[c.id], tier = TIERS_INFO[CARD_TIER[c.id]];
+  const d = CARD[c.id], tier = tierOf(c.id);
   const pow = ctx.pow != null ? ctx.pow : d.power;
   $('insp').innerHTML = `${cardHTML(c, { pow: ctx.pow, cls: ctx.locked ? 'locked' : '' })}
     <div class="insp-txt"><div class="eyebrow">${KW[d.kw]} · ${tier.name}</div><h2>${esc(d.name)}</h2>
