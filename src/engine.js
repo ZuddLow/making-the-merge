@@ -89,7 +89,7 @@ const CARDS = [
   { id: 'snake', name: 'Snake', short: 'Snake', cost: 2, power: 2, arch: 'vote', token: true, text: "On Reveal: Next turn, locations have no effect. If that shuts off The Outback's turn 7, the game ends after this turn." },
   { id: 'execplan', name: 'Executed Plan', short: 'Exec. Plan', cost: 1, power: 0, arch: 'event', type: 'event', held: true, text: 'Scenario: Vote out the last card you played before this one.' },
   { id: 'lisi', name: 'Lisi Linares', short: 'Lisi', cost: 2, power: 2, arch: 'strat', held: true, text: 'On Reveal: The other two locations trade places. Cards stay where they are.' },
-  { id: 'fulltribe', name: 'Full Tribe', short: 'Full Tribe', cost: 3, power: 1, arch: 'alliance', held: true, text: "Ongoing: +5 influence if your side here is full." },
+  { id: 'jaison', name: 'Jaison Robinson', short: 'Jaison', cost: 3, power: 1, arch: 'alliance', held: true, text: "Ongoing: +5 influence if your side here is full." },
   { id: 'fakeidol', name: 'Fake Idol', short: 'Fake Idol', cost: 1, power: 0, arch: 'event', type: 'event', token: true, text: 'Scenario: Does nothing. Bob made it out of a stick.' },
   { id: 'goat', name: 'Goat', short: 'Goat', cost: 0, power: 0, arch: 'goat', token: true, text: 'Takes up a spot. Does nothing.' }
 ];
@@ -148,7 +148,7 @@ const CARD_TIER = {
   necklace: 1, shotdark: 1, nullifier: 1, extravote: 1, doordie: 1,
   rudy: 1, ethan: 1, lex: 1, vecepia: 1, robc: 1, chrisd: 1, terry: 1, yul: 1, yauman: 1, dreamz: 1, james: 1, bob: 1, steph: 1, ian: 1,
   tai: 1, wendell: 1, flint: 1, elisabeth: 1, holloway: 1, nwhite: 1,
-  sue: 2, execplan: 2, lisi: 2, fulltribe: 2
+  sue: 2, execplan: 2, lisi: 2, jaison: 2
 };
 
 let RNG = Math.random;
@@ -205,7 +205,7 @@ function power(g, c) {
   const L = g.locs[c.loc], mine = L.sides[c.owner], theirs = L.sides[1 - c.owner];
   if (c.id === 'amber' && mine.some(o => o.id === 'rob')) v += 3;
   if (c.id === 'tina' && theirs.length > mine.length) v += 4;
-  if (c.id === 'fulltribe' && mine.length >= cap(L)) v += 5; // full means 4, or 1 at Exile Island and 2 at Fire-Making
+  if (c.id === 'jaison' && mine.length >= cap(L)) v += 5; // full means 4, or 1 at Exile Island and 2 at Fire-Making
   if (c.id === 'ben' && L.revealed && (L.id === 'tribal' || L.id === 'fire')) v += 5;
   if ((c.id === 'michele' || c.id === 'earl') && REF_DEPTH === 0) {
     REF_DEPTH++;
