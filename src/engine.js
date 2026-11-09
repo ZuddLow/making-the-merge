@@ -88,6 +88,8 @@ const CARDS = [
   { id: 'rat', name: 'Rat', short: 'Rat', cost: 1, power: 1, arch: 'strat', token: true, text: 'On Reveal: Next turn, your opponent gets -1 fire and you get +1.' },
   { id: 'snake', name: 'Snake', short: 'Snake', cost: 2, power: 2, arch: 'vote', token: true, text: "On Reveal: Next turn, locations have no effect. If that shuts off The Outback's turn 7, the game ends after this turn." },
   { id: 'execplan', name: 'Executed Plan', short: 'Exec. Plan', cost: 1, power: 0, arch: 'event', type: 'event', held: true, text: 'Scenario: Vote out the last card you played before this one.' },
+  { id: 'campswap', name: 'Camp Swap', short: 'Camp Swap', cost: 2, power: 0, arch: 'event', type: 'event', held: true, text: 'Scenario: The other two locations trade places. Cards stay where they are.' },
+  { id: 'fulltribe', name: 'Full Tribe', short: 'Full Tribe', cost: 3, power: 1, arch: 'alliance', held: true, text: "Ongoing: +5 influence if your side here is full." },
   { id: 'fakeidol', name: 'Fake Idol', short: 'Fake Idol', cost: 1, power: 0, arch: 'event', type: 'event', token: true, text: 'Scenario: Does nothing. Bob made it out of a stick.' },
   { id: 'goat', name: 'Goat', short: 'Goat', cost: 0, power: 0, arch: 'goat', token: true, text: 'Takes up a spot. Does nothing.' }
 ];
@@ -146,7 +148,7 @@ const CARD_TIER = {
   necklace: 1, shotdark: 1, nullifier: 1, extravote: 1, doordie: 1,
   rudy: 1, ethan: 1, lex: 1, vecepia: 1, robc: 1, chrisd: 1, terry: 1, yul: 1, yauman: 1, dreamz: 1, james: 1, bob: 1, steph: 1, ian: 1,
   tai: 1, wendell: 1, flint: 1, elisabeth: 1, holloway: 1, nwhite: 1,
-  sue: 2, execplan: 2
+  sue: 2, execplan: 2, campswap: 2, fulltribe: 2
 };
 
 let RNG = Math.random;
@@ -203,6 +205,7 @@ function power(g, c) {
   const L = g.locs[c.loc], mine = L.sides[c.owner], theirs = L.sides[1 - c.owner];
   if (c.id === 'amber' && mine.some(o => o.id === 'rob')) v += 3;
   if (c.id === 'tina' && theirs.length > mine.length) v += 4;
+  if (c.id === 'fulltribe' && mine.length >= cap(L)) v += 5; // full means 4, or 1 at Exile Island and 2 at Fire-Making
   if (c.id === 'ben' && L.revealed && (L.id === 'tribal' || L.id === 'fire')) v += 5;
   if ((c.id === 'michele' || c.id === 'earl') && REF_DEPTH === 0) {
     REF_DEPTH++;
@@ -252,7 +255,7 @@ function startTurn(g) {
   g.turn++;
   const off = g.snakeTurn === g.turn; g.locs.forEach(L => { L.off = off; });
   if (off) emit(g, { t: 'locsoff' });
-  if (g.turn <= 3) revealLoc(g, g.turn - 1);
+  if (g.turn <= 3) { const li = g.locs.findIndex(L => !L.revealed); if (li >= 0) revealLoc(g, li); } // leftmost first, so a Camp Swap can't strand one
   if (g.turn === g.lastTurn && !g.finalDoubled) { g.pending *= 2; g.finalDoubled = true; } // votes double on the final turn
   g.stakes = g.pending;
   for (let p = 0; p < 2; p++) { const P = g.players[p]; draw(g, p); P.energy = Math.max(0, g.turn + P.fireAlways + P.fireNext); P.fireNext = 0; }
@@ -353,6 +356,12 @@ function playEffects(g, c, li, p) {
       break;
     case 'sue': { const H = g.players[p].hand; let n = 0; for (const id of ['rat', 'snake']) if (H.length < 7) { H.push(mk(g, id, p)); n++; } emit(g, { t: 'sue', owner: p, n }); break; }
     case 'rat': g.players[p].fireNext += 1; g.players[op].fireNext -= 1; emit(g, { t: 'rat', owner: p }); break;
+    case 'campswap': {
+      const [a, b] = [0, 1, 2].filter(i => i !== li), A = g.locs[a], B = g.locs[b];
+      for (const k of ['id', 'revealed', 'idolGiven', 'off']) [A[k], B[k]] = [B[k], A[k]]; // the locations move; the cards on each side stay put
+      emit(g, { t: 'campswap', a, b });
+      break;
+    }
     case 'execplan': {
       let t = null; g.locs.forEach(M => M.sides[p].forEach(o => { if (o.uid === c.prevUid) t = o; }));
       emit(g, { t: 'plan', ok: !!t, id: t ? t.id : null });

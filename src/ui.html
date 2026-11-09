@@ -1366,6 +1366,7 @@ function flushEvents() {
   for (const ev of G.events) {
     if (ev.t === 'idol' || ev.t === 'safe') FX.push({ k: 'shield', uid: ev.uid });
     if (ev.t === 'gotidol') FX.push({ k: 'idol', uid: ev.uid });
+    if (ev.t === 'campswap') [ev.a, ev.b].forEach(li => FX.push({ k: 'lane', t: 'swap', li }));
     if (ev.t === 'snake' || ev.t === 'snakeend' || ev.t === 'locsoff') G.locs.forEach((_, li) => FX.push({ k: 'lane', t: 'snake', li }));
     if (ev.t === 'tribal' || ev.t === 'swap' || ev.t === 'urnreveal' || ev.t === 'outback') FX.push({ k: 'lane', t: ev.t, li: ev.li });
     if (ev.t === 'fire' && ev.owner === 0) FX.push({ k: 'fire' });
@@ -1395,6 +1396,7 @@ function flushEvents() {
       case 'mole': say(`${who(ev)} slips over to the other side.`); break;
       case 'lex': say(`Lex blindsides his ally: ${who(ev)} switches sides.`); break;
       case 'robc': say(`Rob C. flips the vote: ${CARD[ev.id].short} and ${CARD[ev.id2].short} swap influence.`); break;
+      case 'campswap': say(`Camp Swap: ${G.locs[ev.b].revealed ? LOC[G.locs[ev.b].id].name : 'an unrevealed location'} and ${G.locs[ev.a].revealed ? LOC[G.locs[ev.a].id].name : 'an unrevealed location'} trade places. The cards stay put.`); break;
       case 'plan': say(ev.ok ? `Executed Plan: the votes land on ${CARD[ev.id].name}, right on cue.` : 'Executed Plan: the plan falls apart. There is no card to vote out.'); break;
       case 'sue': say(ev.owner === 0 ? `Sue Hawk hands you a Rat and a Snake.` : `Sue Hawk hands ${BOT.name} a Rat and a Snake.`); break;
       case 'rat': say(ev.owner === 0 ? `The Rat gets into the rice: next turn you get +1 fire, ${BOT.name} gets −1.` : `${BOT.name}'s Rat gets into the rice: next turn you get −1 fire.`); break;
@@ -1440,7 +1442,7 @@ function render() {
       <div class="slots them ${slotCls(L, 1)}">${slot(L.sides[1], foe.staged.filter(s => s.loc === li), true, L.hid[1])}</div>
       <div class="loc ${L.revealed ? '' : 'hidden'} ${L.off ? 'snaked' : ''} ${newLoc === li ? 'new' : ''} ${hasArt(a) ? 'art' : ''}" data-loc="${li}"${locGameStyle(a)}>
         <span class="tot t ${t > y ? 'win' : ''}">${t}${L.hid[1].length ? '<i>+?</i>' : ''}</span>
-        <h3>${L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.revealed ? def.text : `Reveals on turn ${li + 1}.`}</p>
+        <h3>${L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.revealed ? def.text : `Reveals on turn ${revealTurn(li)}.`}</p>
         <span class="tot y ${y > t ? 'win' : ''}">${y}${L.hid[0].length ? '<i>+?</i>' : ''}</span></div>
       <div class="slots ${slotCls(L, 0)}">${slot(L.sides[0], me.staged.filter(s => s.loc === li), false, L.hid[0])}</div></div>`;
   }).join('');
@@ -1726,6 +1728,8 @@ $('quitBtn').onclick = () => {
 function closeInspect() { $('inspect').hidden = true; }
 $('inspect').addEventListener('click', closeInspect);
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('inspect').hidden) closeInspect(); });
+// Unrevealed locations reveal leftmost first, one per turn through turn 3
+const revealTurn = li => Math.max(G.turn, 0) + 1 + G.locs.slice(0, li).filter(L => !L.revealed).length;
 // Tokens aren't collected, so they have no tier: label them by the card that makes them
 const TOKEN_FROM = { rat: 'Sue Hawk', snake: 'Sue Hawk', goat: 'Brian Heidik', fakeidol: 'Bob Crowley' };
 const tierOf = id => TIERS_INFO[CARD_TIER[id]] || { name: CARD[id] && CARD[id].token ? `Token${TOKEN_FROM[id] ? ' from ' + TOKEN_FROM[id] : ''}` : '' };
@@ -1742,7 +1746,7 @@ function locQuickView(li) {
   const L = G.locs[li], def = LOC[L.id], a = L.revealed ? ART.locs[L.id] : null;
   const t = total(G, li, 1), y = total(G, li, 0);
   $('insp').innerHTML = `<div class="loc ${L.revealed ? '' : 'hidden'} ${hasArt(a) ? 'art' : ''}"${locGameStyle(a)}>
-      <span class="tot t ${t > y ? 'win' : ''}">${t}</span><h3>${L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.revealed ? def.text : `Reveals on turn ${li + 1}.`}</p><span class="tot y ${y > t ? 'win' : ''}">${y}</span></div>
+      <span class="tot t ${t > y ? 'win' : ''}">${t}</span><h3>${L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.revealed ? def.text : `Reveals on turn ${revealTurn(li)}.`}</p><span class="tot y ${y > t ? 'win' : ''}">${y}</span></div>
     <div class="insp-txt"><div class="eyebrow">Location ${li + 1}</div><div class="stats">You ${y} · ${esc(BOT.name)} ${t}</div></div>`;
   $('inspect').hidden = false;
 }

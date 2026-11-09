@@ -702,6 +702,8 @@ const CARDS = [
   { id: 'rat', name: 'Rat', short: 'Rat', cost: 1, power: 1, arch: 'strat', token: true, text: 'On Reveal: Next turn, your opponent gets -1 fire and you get +1.' },
   { id: 'snake', name: 'Snake', short: 'Snake', cost: 2, power: 2, arch: 'vote', token: true, text: "On Reveal: Next turn, locations have no effect. If that shuts off The Outback's turn 7, the game ends after this turn." },
   { id: 'execplan', name: 'Executed Plan', short: 'Exec. Plan', cost: 1, power: 0, arch: 'event', type: 'event', held: true, text: 'Scenario: Vote out the last card you played before this one.' },
+  { id: 'campswap', name: 'Camp Swap', short: 'Camp Swap', cost: 2, power: 0, arch: 'event', type: 'event', held: true, text: 'Scenario: The other two locations trade places. Cards stay where they are.' },
+  { id: 'fulltribe', name: 'Full Tribe', short: 'Full Tribe', cost: 3, power: 1, arch: 'alliance', held: true, text: "Ongoing: +5 influence if your side here is full." },
   { id: 'fakeidol', name: 'Fake Idol', short: 'Fake Idol', cost: 1, power: 0, arch: 'event', type: 'event', token: true, text: 'Scenario: Does nothing. Bob made it out of a stick.' },
   { id: 'goat', name: 'Goat', short: 'Goat', cost: 0, power: 0, arch: 'goat', token: true, text: 'Takes up a spot. Does nothing.' }
 ];
@@ -760,7 +762,7 @@ const CARD_TIER = {
   necklace: 1, shotdark: 1, nullifier: 1, extravote: 1, doordie: 1,
   rudy: 1, ethan: 1, lex: 1, vecepia: 1, robc: 1, chrisd: 1, terry: 1, yul: 1, yauman: 1, dreamz: 1, james: 1, bob: 1, steph: 1, ian: 1,
   tai: 1, wendell: 1, flint: 1, elisabeth: 1, holloway: 1, nwhite: 1,
-  sue: 2, execplan: 2
+  sue: 2, execplan: 2, campswap: 2, fulltribe: 2
 };
 
 let RNG = Math.random;
@@ -817,6 +819,7 @@ function power(g, c) {
   const L = g.locs[c.loc], mine = L.sides[c.owner], theirs = L.sides[1 - c.owner];
   if (c.id === 'amber' && mine.some(o => o.id === 'rob')) v += 3;
   if (c.id === 'tina' && theirs.length > mine.length) v += 4;
+  if (c.id === 'fulltribe' && mine.length >= cap(L)) v += 5; // full means 4, or 1 at Exile Island and 2 at Fire-Making
   if (c.id === 'ben' && L.revealed && (L.id === 'tribal' || L.id === 'fire')) v += 5;
   if ((c.id === 'michele' || c.id === 'earl') && REF_DEPTH === 0) {
     REF_DEPTH++;
@@ -866,7 +869,7 @@ function startTurn(g) {
   g.turn++;
   const off = g.snakeTurn === g.turn; g.locs.forEach(L => { L.off = off; });
   if (off) emit(g, { t: 'locsoff' });
-  if (g.turn <= 3) revealLoc(g, g.turn - 1);
+  if (g.turn <= 3) { const li = g.locs.findIndex(L => !L.revealed); if (li >= 0) revealLoc(g, li); } // leftmost first, so a Camp Swap can't strand one
   if (g.turn === g.lastTurn && !g.finalDoubled) { g.pending *= 2; g.finalDoubled = true; } // votes double on the final turn
   g.stakes = g.pending;
   for (let p = 0; p < 2; p++) { const P = g.players[p]; draw(g, p); P.energy = Math.max(0, g.turn + P.fireAlways + P.fireNext); P.fireNext = 0; }
@@ -967,6 +970,12 @@ function playEffects(g, c, li, p) {
       break;
     case 'sue': { const H = g.players[p].hand; let n = 0; for (const id of ['rat', 'snake']) if (H.length < 7) { H.push(mk(g, id, p)); n++; } emit(g, { t: 'sue', owner: p, n }); break; }
     case 'rat': g.players[p].fireNext += 1; g.players[op].fireNext -= 1; emit(g, { t: 'rat', owner: p }); break;
+    case 'campswap': {
+      const [a, b] = [0, 1, 2].filter(i => i !== li), A = g.locs[a], B = g.locs[b];
+      for (const k of ['id', 'revealed', 'idolGiven', 'off']) [A[k], B[k]] = [B[k], A[k]]; // the locations move; the cards on each side stay put
+      emit(g, { t: 'campswap', a, b });
+      break;
+    }
     case 'execplan': {
       let t = null; g.locs.forEach(M => M.sides[p].forEach(o => { if (o.uid === c.prevUid) t = o; }));
       emit(g, { t: 'plan', ok: !!t, id: t ? t.id : null });
@@ -1947,6 +1956,7 @@ function flushEvents() {
   for (const ev of G.events) {
     if (ev.t === 'idol' || ev.t === 'safe') FX.push({ k: 'shield', uid: ev.uid });
     if (ev.t === 'gotidol') FX.push({ k: 'idol', uid: ev.uid });
+    if (ev.t === 'campswap') [ev.a, ev.b].forEach(li => FX.push({ k: 'lane', t: 'swap', li }));
     if (ev.t === 'snake' || ev.t === 'snakeend' || ev.t === 'locsoff') G.locs.forEach((_, li) => FX.push({ k: 'lane', t: 'snake', li }));
     if (ev.t === 'tribal' || ev.t === 'swap' || ev.t === 'urnreveal' || ev.t === 'outback') FX.push({ k: 'lane', t: ev.t, li: ev.li });
     if (ev.t === 'fire' && ev.owner === 0) FX.push({ k: 'fire' });
@@ -1976,6 +1986,7 @@ function flushEvents() {
       case 'mole': say(`${who(ev)} slips over to the other side.`); break;
       case 'lex': say(`Lex blindsides his ally: ${who(ev)} switches sides.`); break;
       case 'robc': say(`Rob C. flips the vote: ${CARD[ev.id].short} and ${CARD[ev.id2].short} swap influence.`); break;
+      case 'campswap': say(`Camp Swap: ${G.locs[ev.b].revealed ? LOC[G.locs[ev.b].id].name : 'an unrevealed location'} and ${G.locs[ev.a].revealed ? LOC[G.locs[ev.a].id].name : 'an unrevealed location'} trade places. The cards stay put.`); break;
       case 'plan': say(ev.ok ? `Executed Plan: the votes land on ${CARD[ev.id].name}, right on cue.` : 'Executed Plan: the plan falls apart. There is no card to vote out.'); break;
       case 'sue': say(ev.owner === 0 ? `Sue Hawk hands you a Rat and a Snake.` : `Sue Hawk hands ${BOT.name} a Rat and a Snake.`); break;
       case 'rat': say(ev.owner === 0 ? `The Rat gets into the rice: next turn you get +1 fire, ${BOT.name} gets −1.` : `${BOT.name}'s Rat gets into the rice: next turn you get −1 fire.`); break;
@@ -2021,7 +2032,7 @@ function render() {
       <div class="slots them ${slotCls(L, 1)}">${slot(L.sides[1], foe.staged.filter(s => s.loc === li), true, L.hid[1])}</div>
       <div class="loc ${L.revealed ? '' : 'hidden'} ${L.off ? 'snaked' : ''} ${newLoc === li ? 'new' : ''} ${hasArt(a) ? 'art' : ''}" data-loc="${li}"${locGameStyle(a)}>
         <span class="tot t ${t > y ? 'win' : ''}">${t}${L.hid[1].length ? '<i>+?</i>' : ''}</span>
-        <h3>${L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.revealed ? def.text : `Reveals on turn ${li + 1}.`}</p>
+        <h3>${L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.revealed ? def.text : `Reveals on turn ${revealTurn(li)}.`}</p>
         <span class="tot y ${y > t ? 'win' : ''}">${y}${L.hid[0].length ? '<i>+?</i>' : ''}</span></div>
       <div class="slots ${slotCls(L, 0)}">${slot(L.sides[0], me.staged.filter(s => s.loc === li), false, L.hid[0])}</div></div>`;
   }).join('');
@@ -2307,6 +2318,8 @@ $('quitBtn').onclick = () => {
 function closeInspect() { $('inspect').hidden = true; }
 $('inspect').addEventListener('click', closeInspect);
 addEventListener('keydown', e => { if (e.key === 'Escape' && !$('inspect').hidden) closeInspect(); });
+// Unrevealed locations reveal leftmost first, one per turn through turn 3
+const revealTurn = li => Math.max(G.turn, 0) + 1 + G.locs.slice(0, li).filter(L => !L.revealed).length;
 // Tokens aren't collected, so they have no tier: label them by the card that makes them
 const TOKEN_FROM = { rat: 'Sue Hawk', snake: 'Sue Hawk', goat: 'Brian Heidik', fakeidol: 'Bob Crowley' };
 const tierOf = id => TIERS_INFO[CARD_TIER[id]] || { name: CARD[id] && CARD[id].token ? `Token${TOKEN_FROM[id] ? ' from ' + TOKEN_FROM[id] : ''}` : '' };
@@ -2323,7 +2336,7 @@ function locQuickView(li) {
   const L = G.locs[li], def = LOC[L.id], a = L.revealed ? ART.locs[L.id] : null;
   const t = total(G, li, 1), y = total(G, li, 0);
   $('insp').innerHTML = `<div class="loc ${L.revealed ? '' : 'hidden'} ${hasArt(a) ? 'art' : ''}"${locGameStyle(a)}>
-      <span class="tot t ${t > y ? 'win' : ''}">${t}</span><h3>${L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.revealed ? def.text : `Reveals on turn ${li + 1}.`}</p><span class="tot y ${y > t ? 'win' : ''}">${y}</span></div>
+      <span class="tot t ${t > y ? 'win' : ''}">${t}</span><h3>${L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.revealed ? def.text : `Reveals on turn ${revealTurn(li)}.`}</p><span class="tot y ${y > t ? 'win' : ''}">${y}</span></div>
     <div class="insp-txt"><div class="eyebrow">Location ${li + 1}</div><div class="stats">You ${y} · ${esc(BOT.name)} ${t}</div></div>`;
   $('inspect').hidden = false;
 }
