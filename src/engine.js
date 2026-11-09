@@ -90,6 +90,8 @@ const CARDS = [
   { id: 'execplan', name: 'Executed Plan', short: 'Exec. Plan', cost: 1, power: 0, arch: 'event', type: 'event', held: true, text: 'Scenario: Vote out the last card you played before this one.' },
   { id: 'lisi', name: 'Lisi Linares', short: 'Lisi', cost: 2, power: 2, arch: 'strat', held: true, text: 'On Reveal: The other two locations trade places. Cards stay where they are.' },
   { id: 'jaison', name: 'Jaison Robinson', short: 'Jaison', cost: 1, power: 1, arch: 'alliance', held: true, text: "Ongoing: +5 influence if your side of this location is full." },
+  { id: 'shane', name: 'Shane Powers', short: 'Shane', cost: 2, power: 5, arch: 'beast', held: true, text: 'On Reveal: Add his BlackBerry to your hand. Start of Turn: Snaps at a random other card here, either side: it gets -2 influence. With no one else here, he snaps at himself.' },
+  { id: 'blackberry', name: 'BlackBerry', short: 'BlackBerry', cost: 1, power: 0, arch: 'strat', token: true, text: 'On Reveal: Your Shane Powers calms down and stops snapping for the rest of the game.' },
   { id: 'fakeidol', name: 'Fake Idol', short: 'Fake Idol', cost: 1, power: 0, arch: 'event', type: 'event', token: true, text: 'Scenario: Does nothing. Bob made it out of a stick.' },
   { id: 'goat', name: 'Goat', short: 'Goat', cost: 0, power: 0, arch: 'goat', token: true, text: 'Takes up a spot. Does nothing.' }
 ];
@@ -101,7 +103,7 @@ const CARD_KW = {
   reaction: ['natalie', 'rick', 'spencer'],
   end: ['tyson', 'ian'],
   none: ['joe', 'westman', 'holloway', 'goat'],
-  start: ['vecepia', 'terry', 'wendell'], objective: ['chrisd']
+  start: ['vecepia', 'terry', 'wendell', 'shane'], objective: ['chrisd']
 };
 CARDS.forEach(c => { c.kw = Object.keys(CARD_KW).find(k => CARD_KW[k].includes(c.id)) || 'reveal'; });
 
@@ -149,7 +151,7 @@ const CARD_TIER = {
   necklace: 1, shotdark: 1, nullifier: 1, extravote: 1, doordie: 1,
   rudy: 1, ethan: 1, lex: 1, vecepia: 1, robc: 1, chrisd: 1, terry: 1, yul: 1, yauman: 1, dreamz: 1, james: 1, bob: 1, steph: 1, ian: 1,
   tai: 1, wendell: 1, flint: 1, elisabeth: 1, holloway: 1, nwhite: 1,
-  sue: 2, execplan: 2, lisi: 2, jaison: 2
+  sue: 2, execplan: 2, lisi: 2, jaison: 2, shane: 2
 };
 
 let RNG = Math.random;
@@ -266,6 +268,10 @@ function startTurn(g) {
     for (const c of all) {
       if (c.id === 'terry') { c.perm += 1; emit(g, { t: 'sot', id: c.id }); }
       if (c.id === 'wendell') { g.players[c.owner].energy += 1; emit(g, { t: 'fire', owner: c.owner, n: 1, id: c.id }); }
+      if (c.id === 'shane' && !g.players[c.owner].shaneCalm) { // withdrawal: someone here takes the heat, or he does
+        const others = all.filter(o => o !== c), t = others.length ? pick(others) : c;
+        t.perm -= 2; emit(g, { t: 'snap', id: t.id, self: t === c, mine: t.owner === c.owner });
+      }
       if (c.id === 'vecepia') { const top = Math.max(...all.map(o => power(g, o))); if (power(g, c) < top) { c.perm += 1; emit(g, { t: 'sot', id: c.id }); } }
     }
   });
@@ -305,7 +311,7 @@ function playEffects(g, c, li, p) {
       if (L.id === 'idolspot' && !L.idolGiven[p]) { L.idolGiven[p] = true; c.idol = true; emit(g, { t: 'gotidol', uid: c.uid, id: c.id }); }
     }
   }
-  const benched = live(L) && L.id === 'bench' && def.kw === 'reveal'; // On Reveal cards (Scenarios too) sit this one out
+  const benched = live(L) && L.id === 'bench' && (def.kw === 'reveal' || /On Reveal/.test(def.text)); // includes cards like Shane with an On Reveal half // On Reveal cards (Scenarios too) sit this one out
   if (benched) emit(g, { t: 'benched', uid: c.uid, id: c.id });
   if (!benched) switch (c.id) {
     case 'cochran': draw(g, p); break;
@@ -359,6 +365,8 @@ function playEffects(g, c, li, p) {
       break;
     case 'sue': { const H = g.players[p].hand; let n = 0; for (const id of ['rat', 'snake']) if (H.length < 7) { H.push(mk(g, id, p)); n++; } emit(g, { t: 'sue', owner: p, n }); break; }
     case 'rat': g.players[p].fireNext += 1; g.players[op].fireNext -= 1; emit(g, { t: 'rat', owner: p }); break;
+    case 'shane': if (g.players[p].hand.length < 7) { g.players[p].hand.push(mk(g, 'blackberry', p)); emit(g, { t: 'blackberry', owner: p }); } break;
+    case 'blackberry': g.players[p].shaneCalm = true; emit(g, { t: 'calm', owner: p }); break;
     case 'lisi': {
       const [a, b] = [0, 1, 2].filter(i => i !== li), A = g.locs[a], B = g.locs[b];
       for (const k of ['id', 'revealed', 'idolGiven', 'off']) [A[k], B[k]] = [B[k], A[k]]; // the locations move; the cards on each side stay put

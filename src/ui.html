@@ -1396,6 +1396,9 @@ function flushEvents() {
       case 'mole': say(`${who(ev)} slips over to the other side.`); break;
       case 'lex': say(`Lex blindsides his ally: ${who(ev)} switches sides.`); break;
       case 'robc': say(`Rob C. flips the vote: ${CARD[ev.id].short} and ${CARD[ev.id2].short} swap influence.`); break;
+      case 'blackberry': say(ev.owner === 0 ? 'Shane hands you his wooden BlackBerry.' : `${BOT.name}'s Shane pulls out his wooden BlackBerry.`); break;
+      case 'calm': say(ev.owner === 0 ? 'You hand Shane his BlackBerry. He calms down for good.' : `${BOT.name}'s Shane gets his BlackBerry and calms down.`); break;
+      case 'snap': say(ev.self ? 'Shane snaps at himself: −2 influence.' : `Shane snaps at ${CARD[ev.id].name}: −2 influence.`); break;
       case 'benched': say(`${CARD[ev.id].name} sits out on the bench: no On Reveal.`); break;
       case 'lisi': say(`Lisi Linares: ${G.locs[ev.b].revealed ? LOC[G.locs[ev.b].id].name : 'an unrevealed location'} and ${G.locs[ev.a].revealed ? LOC[G.locs[ev.a].id].name : 'an unrevealed location'} trade places. The cards stay put.`); break;
       case 'plan': say(ev.ok ? `Executed Plan: the votes land on ${CARD[ev.id].name}, right on cue.` : 'Executed Plan: the plan falls apart. There is no card to vote out.'); break;
@@ -1732,7 +1735,7 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && !$('inspect').hidde
 // Unrevealed locations reveal leftmost first, one per turn through turn 3
 const revealTurn = li => Math.max(G.turn, 0) + 1 + G.locs.slice(0, li).filter(L => !L.revealed).length;
 // Tokens aren't collected, so they have no tier: label them by the card that makes them
-const TOKEN_FROM = { rat: 'Sue Hawk', snake: 'Sue Hawk', goat: 'Brian Heidik', fakeidol: 'Bob Crowley' };
+const TOKEN_FROM = { blackberry: 'Shane Powers', rat: 'Sue Hawk', snake: 'Sue Hawk', goat: 'Brian Heidik', fakeidol: 'Bob Crowley' };
 const tierOf = id => TIERS_INFO[CARD_TIER[id]] || { name: CARD[id] && CARD[id].token ? `Token${TOKEN_FROM[id] ? ' from ' + TOKEN_FROM[id] : ''}` : '' };
 function gameQuickView(c, ctx = {}) {
   const d = CARD[c.id], tier = tierOf(c.id);
