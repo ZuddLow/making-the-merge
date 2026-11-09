@@ -123,7 +123,8 @@ const LOCS = [
   { id: 'flintreward', name: 'Flint Reward', text: 'Each card you play here gives you +1 fire next turn.' },
   { id: 'outback', name: 'The Outback', text: 'When revealed, the game lasts 7 turns.' },
   { id: 'urn', name: 'The Voting Booth', text: 'Cards played here stay face-down until the game ends.' },
-  { id: 'bench', name: 'Sit-Out Bench', text: "On Reveal abilities don't happen here." }
+  { id: 'bench', name: 'Sit-Out Bench', text: "On Reveal abilities don't happen here." },
+  { id: 'tent', name: 'Medical Tent', text: "Ongoing abilities don't work here." }
 ];
 const LOC = Object.fromEntries(LOCS.map(l => [l.id, l]));
 
@@ -182,7 +183,7 @@ function draw(g, p, n = 1) {
 
 // Face-down cards (The Voting Booth, Natalie White) sit in L.hid until the game ends: they hold a space but don't count yet.
 function occ(L, p) { return L.sides[p].length + (L.hid ? L.hid[p].length : 0); }
-const hidesAt = L => (live(L) && L.id === 'urn') || L.sides.some(sd => sd.some(o => o.id === 'nwhite'));
+const hidesAt = L => (live(L) && L.id === 'urn') || (!tented(L) && L.sides.some(sd => sd.some(o => o.id === 'nwhite')));
 const live = L => L.revealed && !L.off; // a revealed location whose effect is working this turn (a Snake switches them off)
 function cap(L) { if (live(L)) { if (L.id === 'exile') return 1; if (L.id === 'fire') return 2; } return 4; }
 function space(g, li, p) {
@@ -206,34 +207,40 @@ function power(g, c) {
   let v = CARD[c.id].power + c.perm;
   if (c.loc < 0) return v;
   const L = g.locs[c.loc], mine = L.sides[c.owner], theirs = L.sides[1 - c.owner];
-  if (c.id === 'amber' && mine.some(o => o.id === 'rob')) v += 3;
-  if (c.id === 'tina' && theirs.length > mine.length) v += 4;
-  if (c.id === 'jaison' && mine.length >= cap(L)) v += 5; // full means 4, or 1 at Exile Island and 2 at Fire-Making
-  if (c.id === 'ben' && L.revealed && (L.id === 'tribal' || L.id === 'fire')) v += 5;
-  if ((c.id === 'michele' || c.id === 'earl') && REF_DEPTH === 0) {
-    REF_DEPTH++;
-    try {
-      const others = g.locs.map((_, i) => i).filter(i => i !== c.loc);
-      const res = others.map(i => total(g, i, c.owner) - total(g, i, 1 - c.owner));
-      if (c.id === 'michele' && res.every(d => d < 0)) v += 4;
-      if (c.id === 'earl' && res.every(d => d > 0)) v += 4;
-    } finally { REF_DEPTH--; }
+  const T = tented(L); // Medical Tent: Ongoing abilities of cards here are off (their own bonuses and their auras here)
+  if (!T) {
+    if (c.id === 'amber' && mine.some(o => o.id === 'rob')) v += 3;
+    if (c.id === 'tina' && theirs.length > mine.length) v += 4;
+    if (c.id === 'jaison' && mine.length >= cap(L)) v += 5; // full means 4, or 1 at Exile Island and 2 at Fire-Making
+    if (c.id === 'ben' && L.revealed && (L.id === 'tribal' || L.id === 'fire')) v += 5;
+    if ((c.id === 'michele' || c.id === 'earl') && REF_DEPTH === 0) {
+      REF_DEPTH++;
+      try {
+        const others = g.locs.map((_, i) => i).filter(i => i !== c.loc);
+        const res = others.map(i => total(g, i, c.owner) - total(g, i, 1 - c.owner));
+        if (c.id === 'michele' && res.every(d => d < 0)) v += 4;
+        if (c.id === 'earl' && res.every(d => d > 0)) v += 4;
+      } finally { REF_DEPTH--; }
+    }
+    for (const o of mine) if (o !== c && o.id === 'colby') v -= 1;
+    if (c.id === 'steph') v += theirs.length;
+    if (c.id === 'james' && c.idol) v += 3;
+    if (g.turn === g.lastTurn) { if (c.id === 'dreamz') v += 3; for (const o of mine) if (o !== c && o.id === 'dreamz') v -= 2; }
+    if (c.id === 'parvati' && mine.length > theirs.length) v += 3;
+    if (c.id === 'sandra') v += g.votedOut;
+    if (c.id === 'ozzy' && mine.length === 1) v += 4;
+    for (const o of mine) if (o !== c && o.id === 'rob') v += 1;
+    for (const o of theirs) { if (o.id === 'erik') v += 1; if (o.id === 'kim') v -= 1; }
   }
-  for (const o of mine) if (o !== c && o.id === 'colby') v -= 1;
-  if (c.id === 'steph') v += theirs.length;
-  if (c.id === 'james' && c.idol) v += 3;
-  if (c.idol && g.locs.some(M => M.sides[c.owner].some(o => o.id === 'yul'))) v += 2;
-  if (g.turn === g.lastTurn) { if (c.id === 'dreamz') v += 3; for (const o of mine) if (o !== c && o.id === 'dreamz') v -= 2; }
-  if (c.id === 'parvati' && mine.length > theirs.length) v += 3;
-  if (c.id === 'sandra') v += g.votedOut;
-  if (c.id === 'ozzy' && mine.length === 1) v += 4;
-  for (const o of mine) if (o !== c && o.id === 'rob') v += 1;
-  for (const o of theirs) { if (o.id === 'erik') v += 1; if (o.id === 'kim') v -= 1; }
-  g.locs.forEach(M => { if (M !== L) for (const o of M.sides[c.owner]) if (o.id === 'hatch') v += 1; });
-  if (mine.some(o => o !== c && o.id === 'ethan')) v = Math.max(v, CARD[c.id].power);
+  // effects reaching in from cards at other locations still work, unless those cards are in the tent
+  if (c.idol && g.locs.some(M => !tented(M) && M.sides[c.owner].some(o => o.id === 'yul'))) v += 2;
+  g.locs.forEach(M => { if (M !== L && !tented(M)) for (const o of M.sides[c.owner]) if (o.id === 'hatch') v += 1; });
+  if (!T && mine.some(o => o !== c && o.id === 'ethan')) v = Math.max(v, CARD[c.id].power);
   return v;
 }
-const fixedCard = c => c.id === 'rudy'; // Rudy never moves or changes sides
+const tented = L => live(L) && L.id === 'tent';
+const fixedCard = (c, g) => c.id === 'rudy' && !(g && c.loc >= 0 && tented(g.locs[c.loc])); // Rudy never moves or changes sides (except in the Medical Tent)
+
 function total(g, li, p) { return g.locs[li].sides[p].reduce((s, c) => s + power(g, c), 0); }
 function locWinner(g, li) { const a = total(g, li, 0), b = total(g, li, 1); return a > b ? 0 : b > a ? 1 : -1; }
 function standing(g) {
@@ -284,8 +291,8 @@ function quit(g, p) { g.over = true; g.result = { winner: 1 - p, stakes: g.stake
 function voteOut(g, c) {
   if (c.loc < 0) return false;
   const L = g.locs[c.loc];
-  if (c.id === 'sandra' || isImmunity(L) || L.sides[c.owner].some(o => o !== c && o.id === 'jeremy')) { emit(g, { t: 'safe', uid: c.uid, id: c.id }); return false; }
-  if (c.idol && c.id !== 'james') { c.idol = false; emit(g, { t: 'idol', uid: c.uid, id: c.id }); return false; }
+  if (c.id === 'sandra' || isImmunity(L) || (!tented(L) && L.sides[c.owner].some(o => o !== c && o.id === 'jeremy'))) { emit(g, { t: 'safe', uid: c.uid, id: c.id }); return false; }
+  if (c.idol && (c.id !== 'james' || tented(L))) { c.idol = false; emit(g, { t: 'idol', uid: c.uid, id: c.id }); return false; }
   const from = c.loc; removeFrom(g, c); g.votedOut++; g.outBy[c.owner]++;
   const goneEntry = { uid: c.uid, id: c.id, owner: c.owner, turn: g.turn, why: 'out' }; g.gone.push(goneEntry);
   g.locs.forEach(M => M.sides[1 - c.owner].forEach(o => { if (o.id === 'spencer') o.perm += 1; }));
@@ -323,7 +330,7 @@ function playEffects(g, c, li, p) {
     case 'brian': g.locs.forEach((M, mi) => { if (mi !== li && occ(M, op) < cap(M)) place(g, mk(g, 'goat', op), mi, op); }); emit(g, { t: 'goats' }); break;
     case 'cirie': {
       if (isImmunity(L) || occ(L, p) >= cap(L)) break;
-      const t = minBy(L.sides[op].filter(o => power(g, o) <= 3 && !fixedCard(o)), o => power(g, o));
+      const t = minBy(L.sides[op].filter(o => power(g, o) <= 3 && !fixedCard(o, g)), o => power(g, o));
       if (t) { removeFrom(g, t); place(g, t, li, p); emit(g, { t: 'flip', uid: t.uid, id: t.id }); }
       break;
     }
@@ -340,7 +347,7 @@ function playEffects(g, c, li, p) {
     case 'wade': {
       if (occ(L, p) >= cap(L)) break;
       const cands = [];
-      g.locs.forEach((M, mi) => { if (mi !== li && !isImmunity(M)) M.sides[p].forEach(o => { if (!fixedCard(o)) cands.push(o); }); });
+      g.locs.forEach((M, mi) => { if (mi !== li && !isImmunity(M)) M.sides[p].forEach(o => { if (!fixedCard(o, g)) cands.push(o); }); });
       const t = maxBy(cands, o => power(g, o));
       if (t) { removeFrom(g, t); place(g, t, li, p); emit(g, { t: 'moved', uid: t.uid, id: t.id }); }
       break;
@@ -348,7 +355,7 @@ function playEffects(g, c, li, p) {
     case 'lex': {
       c.perm += 3;
       if (isImmunity(L) || occ(L, op) >= cap(L)) break;
-      const t = minBy(L.sides[p].filter(o => o !== c && !fixedCard(o)), o => power(g, o));
+      const t = minBy(L.sides[p].filter(o => o !== c && !fixedCard(o, g)), o => power(g, o));
       if (t) { removeFrom(g, t); place(g, t, li, op); emit(g, { t: 'lex', uid: t.uid, id: t.id }); }
       break;
     }
@@ -408,7 +415,7 @@ function playEffects(g, c, li, p) {
     case 'doordie': { const t = maxBy(L.sides[p].filter(o => o !== c), o => power(g, o)); if (t) { if (RNG() < 0.5) { t.perm += 6; emit(g, { t: 'dod', ok: true, id: t.id }); } else { emit(g, { t: 'dod', ok: false, id: t.id }); voteOut(g, t); } } break; }
     case 'tribeswap': {
       if (isImmunity(L)) break;
-      const t = maxBy(L.sides[op].filter(o => !fixedCard(o)), o => power(g, o)); if (!t) break;
+      const t = maxBy(L.sides[op].filter(o => !fixedCard(o, g)), o => power(g, o)); if (!t) break;
       const d = [0, 1, 2].filter(i => i !== li && occ(g.locs[i], op) < cap(g.locs[i]));
       if (d.length) { removeFrom(g, t); place(g, t, pick(d), op); emit(g, { t: 'moved', uid: t.uid, id: t.id }); }
       break;
@@ -421,7 +428,7 @@ function playEffects(g, c, li, p) {
   else if (P.kellyArm && def.type !== 'event' && c.loc >= 0 && c.owner === p) {
     P.kellyArm = false;
     const from = g.locs[c.loc], to = c.loc - 1, T = g.locs[to];
-    if (to >= 0 && !fixedCard(c) && !isImmunity(from) && occ(T, p) < cap(T)) { removeFrom(g, c); place(g, c, to, p); emit(g, { t: 'moved', uid: c.uid, id: c.id }); }
+    if (to >= 0 && !fixedCard(c, g) && !isImmunity(from) && occ(T, p) < cap(T)) { removeFrom(g, c); place(g, c, to, p); emit(g, { t: 'moved', uid: c.uid, id: c.id }); }
   }
   if (def.type === 'event' && c.loc >= 0) { removeFrom(g, c); g.gone.push({ uid: c.uid, id: c.id, owner: p, turn: g.turn, why: 'scenario' }); }
 }
@@ -473,7 +480,7 @@ function* endOfTurn(g) {
   if (g.turn === 4) for (const L of g.locs) {
     if (!live(L) || L.id !== 'swap') continue;
     const stay = [L.sides[0].filter(fixedCard), L.sides[1].filter(fixedCard)];
-    const ns = [L.sides[1].filter(c => !fixedCard(c)).concat(stay[0]), L.sides[0].filter(c => !fixedCard(c)).concat(stay[1])];
+    const ns = [L.sides[1].filter(c => !fixedCard(c, g)).concat(stay[0]), L.sides[0].filter(c => !fixedCard(c, g)).concat(stay[1])];
     L.sides = ns[0].length <= cap(L) && ns[1].length <= cap(L) ? ns : [L.sides[1], L.sides[0]]; // no room to stay put: Rudy swaps too
     L.sides.forEach((s, p) => s.forEach(c => { c.owner = p; }));
     L.hid = [L.hid[1], L.hid[0]]; L.hid.forEach((s, p) => s.forEach(c => { c.owner = p; }));
