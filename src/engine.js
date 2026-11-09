@@ -87,7 +87,7 @@ const CARDS = [
   { id: 'sue', name: 'Sue Hawk', short: 'Sue', cost: 3, power: 2, arch: 'vote', held: true, text: 'On Reveal: Add a Rat and a Snake to your hand.' },
   { id: 'rat', name: 'Rat', short: 'Rat', cost: 1, power: 1, arch: 'strat', token: true, text: 'On Reveal: Next turn, your opponent gets -1 fire and you get +1.' },
   { id: 'snake', name: 'Snake', short: 'Snake', cost: 2, power: 2, arch: 'vote', token: true, text: "On Reveal: Next turn, locations have no effect. If that shuts off The Outback's turn 7, the game ends after this turn." },
-  { id: 'execplan', name: 'Executed Plan', short: 'Exec. Plan', cost: 1, power: 0, arch: 'event', type: 'event', held: true, text: 'Scenario: Vote out the last card you played before this one.' },
+  { id: 'denise', name: 'Denise Stapley', short: 'Denise', cost: 3, power: 3, arch: 'vote', held: true, text: 'On Reveal: Vote out the last card you played before this one.' },
   { id: 'lisi', name: 'Lisi Linares', short: 'Lisi', cost: 2, power: 2, arch: 'strat', held: true, text: 'On Reveal: The other two locations trade places. Cards stay where they are.' },
   { id: 'jaison', name: 'Jaison Robinson', short: 'Jaison', cost: 1, power: 1, arch: 'alliance', held: true, text: "Ongoing: +5 influence if your side of this location is full." },
   { id: 'shane', name: 'Shane Powers', short: 'Shane', cost: 2, power: 5, arch: 'beast', held: true, text: 'On Reveal: Add his BlackBerry to your hand. Start of Turn: Snaps at a random other card here, either side: it gets -2 influence. With no one else here, he snaps at himself.' },
@@ -152,7 +152,7 @@ const CARD_TIER = {
   necklace: 1, shotdark: 1, nullifier: 1, extravote: 1, doordie: 1,
   rudy: 1, ethan: 1, lex: 1, vecepia: 1, robc: 1, chrisd: 1, terry: 1, yul: 1, yauman: 1, dreamz: 1, james: 1, bob: 1, steph: 1, ian: 1,
   tai: 1, wendell: 1, flint: 1, elisabeth: 1, holloway: 1, nwhite: 1,
-  sue: 2, execplan: 2, lisi: 2, jaison: 2, shane: 2
+  sue: 2, denise: 2, lisi: 2, jaison: 2, shane: 2
 };
 
 let RNG = Math.random;
@@ -380,7 +380,7 @@ function playEffects(g, c, li, p) {
       emit(g, { t: 'lisi', a, b });
       break;
     }
-    case 'execplan': {
+    case 'denise': {
       let t = null; g.locs.forEach(M => M.sides[p].forEach(o => { if (o.uid === c.prevUid) t = o; }));
       emit(g, { t: 'plan', ok: !!t, id: t ? t.id : null });
       if (t) voteOut(g, t);
@@ -445,7 +445,7 @@ function* resolveTurn(g) {
       const { card, loc } = P.staged.shift();
       const L = g.locs[loc];
       if (occ(L, p) >= cap(L)) { if (P.hand.length < 7) P.hand.push(card); else P.deck.unshift(card); emit(g, { t: 'nofit', uid: card.uid, id: card.id, owner: p }); continue; }
-      card.prevUid = P.lastUid; P.lastUid = card.uid; // Executed Plan targets the card you played just before it
+      card.prevUid = P.lastUid; P.lastUid = card.uid; // Denise targets the card you played just before it
       if (hidesAt(L)) {
         card.owner = p; card.loc = loc; card.turn = g.turn; card.seq = g.seq++;
         L.hid[p].push(card); P.played++; if (CARD[card.id].type === 'event') P.events++;

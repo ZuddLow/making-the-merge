@@ -1401,7 +1401,7 @@ function flushEvents() {
       case 'snap': say(ev.self ? 'Shane snaps at himself: −2 influence.' : `Shane snaps at ${CARD[ev.id].name}: −2 influence.`); break;
       case 'benched': say(`${CARD[ev.id].name} sits out on the bench: no On Reveal.`); break;
       case 'lisi': say(`Lisi Linares: ${G.locs[ev.b].revealed ? LOC[G.locs[ev.b].id].name : 'an unrevealed location'} and ${G.locs[ev.a].revealed ? LOC[G.locs[ev.a].id].name : 'an unrevealed location'} trade places. The cards stay put.`); break;
-      case 'plan': say(ev.ok ? `Executed Plan: the votes land on ${CARD[ev.id].name}, right on cue.` : 'Executed Plan: the plan falls apart. There is no card to vote out.'); break;
+      case 'plan': say(ev.ok ? `Denise's plan works: the votes land on ${CARD[ev.id].name}, right on cue.` : "Denise's plan falls apart: there's no card to vote out."); break;
       case 'sue': say(ev.owner === 0 ? `Sue Hawk hands you a Rat and a Snake.` : `Sue Hawk hands ${BOT.name} a Rat and a Snake.`); break;
       case 'rat': say(ev.owner === 0 ? `The Rat gets into the rice: next turn you get +1 fire, ${BOT.name} gets −1.` : `${BOT.name}'s Rat gets into the rice: next turn you get −1 fire.`); break;
       case 'snake': say(`${ev.owner === 0 ? 'Your' : BOT.name + "'s"} Snake strikes: next turn, locations have no effect.`); break;
