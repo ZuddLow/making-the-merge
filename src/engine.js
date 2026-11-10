@@ -16,7 +16,7 @@ const CARDS = [
   { id: 'kass', name: 'Kass McQuillen', short: 'Kass', cost: 2, power: 2, arch: 'vote', text: 'On Reveal: Vote out your other cards here. +3 influence for each.' },
   { id: 'sandra', name: 'Sandra Diaz-Twine', short: 'Sandra', cost: 2, power: 2, arch: 'vote', text: "Can't be voted out. Ongoing: +1 influence for each card voted out this game." },
   { id: 'reward', name: 'Reward Challenge', short: 'Reward', cost: 2, power: 0, arch: 'event', type: 'event', text: 'Scenario: Your other cards here get +2 influence.' },
-  { id: 'tribeswap', name: 'Tribe Swap', short: 'Swap', cost: 2, power: 0, arch: 'event', type: 'event', text: 'Scenario: Move the strongest enemy card here to another location.' },
+  { id: 'tribeswap', name: 'Power Broker', short: 'Power Broker', cost: 2, power: 0, arch: 'event', type: 'event', text: 'Scenario: Move the strongest enemy card here to another location.' },
   { id: 'ozzy', name: 'Ozzy Lusth', short: 'Ozzy', cost: 3, power: 3, arch: 'beast', text: 'Ongoing: +4 influence if this is your only card here.' },
   { id: 'yamyam', name: 'Yam Yam Arocho', short: 'Yam Yam', cost: 3, power: 3, arch: 'alliance', text: 'On Reveal: Your other cards here get +1 influence.' },
   { id: 'brian', name: 'Brian Heidik', short: 'Brian', cost: 3, power: 3, arch: 'strat', text: 'On Reveal: Drag a Goat to the enemy side of each other location.' },
