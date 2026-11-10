@@ -217,6 +217,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
 .loc p { margin: 0; font-size: 11px; line-height: 1.2; color: var(--sand-dim); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .loc.art p { color: #d7cfb6; text-shadow: 0 1px 2px rgba(0,0,0,.9); }
 .loc.hidden h3 { color: var(--sand-dim); }
+.loc.flooded { box-shadow: inset 0 -38px 30px -14px rgba(70,140,220,.55), inset 0 0 0 1px rgba(147,182,220,.6); }
+.floodtag { position: absolute; left: 50%; bottom: 26px; translate: -50% 0; white-space: nowrap; font-size: 8.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #0d1a29; background: #93b6dc; border-radius: 999px; padding: 1px 7px; z-index: 2; }
 .loc.wrecked { background: repeating-linear-gradient(135deg, rgba(217,84,47,.10) 0 8px, transparent 8px 16px), #120d0b; border-color: #5a2a1c; opacity: .8; }
 .loc.wrecked h3 { color: var(--ember); } .loc.wrecked .tot { opacity: .35; }
 .loc.snaked { filter: saturate(.35) brightness(.8); box-shadow: inset 0 0 0 1px rgba(143,219,154,.45); }
@@ -716,6 +718,7 @@ const CARDS = [
   { id: 'blackberry', name: 'BlackBerry', short: 'BlackBerry', cost: 1, power: 0, arch: 'strat', token: true, text: 'On Reveal: Your Shane Powers calms down and stops snapping for the rest of the game.' },
   { id: 'aubry', name: 'Aubry Bracco', short: 'Aubry', cost: 2, power: 3, arch: 'strat', held: true, text: "Ongoing: On turn 5, you see your opponent's plays before you make yours." },
   { id: 'brandon', name: 'Brandon Hantz', short: 'Brandon', cost: 6, power: 6, arch: 'beast', held: true, text: 'On Reveal: If this is your only card here, wreck the other locations.' },
+  { id: 'rodger', name: 'Rodger Bingham', short: 'Rodger', cost: 3, power: 2, arch: 'alliance', held: true, text: 'On Reveal: Flood this location. After next turn, no more cards can be played or moved here.' },
   { id: 'fakeidol', name: 'Fake Idol', short: 'Fake Idol', cost: 1, power: 0, arch: 'event', type: 'event', token: true, text: 'Scenario: Does nothing. Bob made it out of a stick.' },
   { id: 'goat', name: 'Goat', short: 'Goat', cost: 0, power: 0, arch: 'goat', token: true, text: 'Takes up a spot. Does nothing.' }
 ];
@@ -776,7 +779,7 @@ const CARD_TIER = {
   necklace: 1, shotdark: 1, nullifier: 1, extravote: 1, doordie: 1,
   rudy: 1, ethan: 1, lex: 1, vecepia: 1, robc: 1, chrisd: 1, terry: 1, yul: 1, yauman: 1, dreamz: 1, james: 1, bob: 1, steph: 1, ian: 1,
   tai: 1, wendell: 1, flint: 1, elisabeth: 1, holloway: 1, nwhite: 1,
-  sue: 2, denise: 2, lisi: 2, jaison: 2, shane: 2, aubry: 2, brandon: 3
+  sue: 2, denise: 2, lisi: 2, jaison: 2, shane: 2, aubry: 2, brandon: 3, rodger: 2
 };
 
 let RNG = Math.random;
@@ -820,7 +823,8 @@ function draw(g, p, n = 1) {
 function occ(L, p) { return L.sides[p].length + (L.hid ? L.hid[p].length : 0); }
 const hidesAt = L => (live(L) && L.id === 'urn') || (!tented(L) && L.sides.some(sd => sd.some(o => o.id === 'nwhite')));
 const live = L => L.revealed && !L.off && !L.wrecked; // a revealed location whose effect is working this turn (a Snake switches them off)
-function cap(L) { if (L.wrecked) return 0; if (live(L)) { if (L.id === 'exile') return 1; if (L.id === 'fire') return 2; } return 4; }
+function capOf(L) { if (live(L)) { if (L.id === 'exile') return 1; if (L.id === 'fire') return 2; } return 4; } // the location's size
+function cap(L) { return L.wrecked || L.closed ? 0 : capOf(L); } // room for new cards: none once wrecked or flooded shut
 function space(g, li, p) {
   const L = g.locs[li];
   return cap(L) - occ(L, p) - g.players[p].staged.filter(s => s.loc === li).length;
@@ -846,7 +850,7 @@ function power(g, c) {
   if (!T) {
     if (c.id === 'amber' && mine.some(o => o.id === 'rob')) v += 3;
     if (c.id === 'tina' && theirs.length > mine.length) v += 4;
-    if (c.id === 'jaison' && mine.length >= cap(L)) v += 5; // full means 4, or 1 at Exile Island and 2 at Fire-Making
+    if (c.id === 'jaison' && mine.length >= capOf(L)) v += 5; // full means 4, or 1 at Exile Island and 2 at Fire-Making
     if (c.id === 'ben' && L.revealed && (L.id === 'tribal' || L.id === 'fire')) v += 5;
     if ((c.id === 'michele' || c.id === 'earl') && REF_DEPTH === 0) {
       REF_DEPTH++;
@@ -898,7 +902,7 @@ function revealLoc(g, li) {
 
 function startTurn(g) {
   g.turn++;
-  const off = g.snakeTurn === g.turn; g.locs.forEach(L => { L.off = off; });
+  const off = g.snakeTurn === g.turn; g.locs.forEach(L => { L.off = off; L.closed = L.floodAfter != null && g.turn > L.floodAfter; }); // a flood stays with its lane
   if (off) emit(g, { t: 'locsoff' });
   if (g.turn <= 3) { const li = g.locs.findIndex(L => !L.revealed && !L.wrecked); if (li >= 0) revealLoc(g, li); } // leftmost first, so Lisi can't strand one
   if (g.turn === g.lastTurn && !g.finalDoubled) { g.pending *= 2; g.finalDoubled = true; } // votes double on the final turn
@@ -1020,6 +1024,7 @@ function playEffects(g, c, li, p) {
     case 'rat': g.players[p].fireNext += 1; g.players[op].fireNext -= 1; emit(g, { t: 'rat', owner: p }); break;
     case 'shane': if (g.players[p].hand.length < 7) { g.players[p].hand.push(mk(g, 'blackberry', p)); emit(g, { t: 'blackberry', owner: p }); } break;
     case 'blackberry': g.players[p].shaneCalm = true; emit(g, { t: 'calm', owner: p }); break;
+    case 'rodger': if (L.floodAfter == null) { L.floodAfter = g.turn + 1; emit(g, { t: 'flood', li, last: g.turn + 1 }); } break;
     case 'brandon': {
       if (L.sides[p].length !== 1) { emit(g, { t: 'brandon', ok: false }); break; } // someone's standing next to him: no meltdown
       g.locs.forEach((M, mi) => {
@@ -2051,6 +2056,7 @@ function flushEvents() {
       case 'calm': say(ev.owner === 0 ? 'You hand Shane his BlackBerry. He calms down for good.' : `${BOT.name}'s Shane gets his BlackBerry and calms down.`); break;
       case 'snap': say(ev.self ? 'Shane snaps at himself: −2 influence.' : `Shane snaps at ${CARD[ev.id].name}: −2 influence.`); break;
       case 'benched': say(`${CARD[ev.id].name} sits out on the bench: no On Reveal.`); break;
+      case 'flood': say(`Rodger floods ${G.locs[ev.li].revealed ? LOC[G.locs[ev.li].id].name : 'this location'}. Turn ${ev.last} is the last turn to play there.`); break;
       case 'brandon': say(ev.ok ? 'Brandon dumps the rice! The other two camps are wrecked. This location decides it all.' : "Brandon isn't alone here, so there's no meltdown."); break;
       case 'lisi': say(`Lisi Linares: ${G.locs[ev.b].revealed ? LOC[G.locs[ev.b].id].name : 'an unrevealed location'} and ${G.locs[ev.a].revealed ? LOC[G.locs[ev.a].id].name : 'an unrevealed location'} trade places. The cards stay put.`); break;
       case 'twist': say(`Jeff Probst: “${ev.line}” ${ev.owner === 0 ? '' : '(' + BOT.name + ') '}${ev.text}`); break;
@@ -2097,9 +2103,10 @@ function render() {
     const fin = G.over && G.result.quit < 0 ? (y > t ? 'final-win' : t > y ? 'final-lose' : '') : '';
     return `<div class="lane ${ok ? 'ok' : ''} ${fin}" data-li="${li}" tabindex="0" aria-label="Location ${li + 1}">
       <div class="slots them ${slotCls(L, 1)}">${slot(L.sides[1], foe.staged.filter(s => s.loc === li), true, L.hid[1])}</div>
-      <div class="loc ${L.revealed ? '' : 'hidden'} ${L.wrecked ? 'wrecked' : ''} ${L.off ? 'snaked' : ''} ${newLoc === li ? 'new' : ''} ${hasArt(a) && !L.wrecked ? 'art' : ''}" data-loc="${li}"${L.wrecked ? '' : locGameStyle(a)}>
+      <div class="loc ${L.revealed ? '' : 'hidden'} ${L.wrecked ? 'wrecked' : ''} ${L.floodAfter != null && !L.wrecked ? 'flooded' : ''} ${L.off ? 'snaked' : ''} ${newLoc === li ? 'new' : ''} ${hasArt(a) && !L.wrecked ? 'art' : ''}" data-loc="${li}"${L.wrecked ? '' : locGameStyle(a)}>
         <span class="tot t ${t > y ? 'win' : ''}">${t}${L.hid[1].length ? '<i>+?</i>' : ''}</span>
         <h3>${L.wrecked ? 'Wrecked' : L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.wrecked ? 'Brandon dumped the rice here.' : L.revealed ? def.text : `Reveals on turn ${revealTurn(li)}.`}</p>
+        ${L.floodAfter != null && !L.wrecked ? `<span class="floodtag">${L.closed ? 'Flooded' : G.turn >= L.floodAfter ? 'Last turn here' : 'Floods after T' + L.floodAfter}</span>` : ''}
         <span class="tot y ${y > t ? 'win' : ''}">${y}${L.hid[0].length ? '<i>+?</i>' : ''}</span></div>
       <div class="slots ${slotCls(L, 0)}">${slot(L.sides[0], me.staged.filter(s => s.loc === li), false, L.hid[0])}</div></div>`;
   }).join('');
