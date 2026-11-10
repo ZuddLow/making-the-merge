@@ -851,10 +851,10 @@ function renderHome() {
     <div class="eyebrow">Your rank</div><h2>${cur[1]}</h2>
     <div class="sub">${next ? `<b>${next[0] - save.votes}</b> votes to ${next[1]}` : 'Top rank reached'} · ${save.wins}W – ${save.losses}L</div>`;
   const owned = Object.keys(save.owned).filter(id => isOut(id)).length, totalCards = CARDS.filter(c => !c.token && isOut(c.id)).length;
-  const can = save.rice >= PACK_COST && mailPool().length;
+  const can = save.rice >= packCost() && mailPool().length;
   $('mail').innerHTML = `<div class="mr-pack" aria-hidden="true">${packHTML('ember')}</div>
-    <div class="mr-txt"><b>Tree Mail</b><span>${mailPool().length ? `${PACK_COST} rice · ${owned} of ${totalCards} collected` : `All available cards found · ${owned} of ${totalCards}`}</span></div>
-    <button class="btn small ${can ? 'primary' : ''}" id="mailBtn" ${can ? '' : 'disabled'}>${mailPool().length ? (save.rice >= PACK_COST ? 'Open' : `Need ${PACK_COST - save.rice}`) : 'All found'}</button>`;
+    <div class="mr-txt"><b>Tree Mail</b><span>${mailPool().length ? `${packCost()} rice · ${owned} of ${totalCards} collected` : `All available cards found · ${owned} of ${totalCards}`}</span></div>
+    <button class="btn small ${can ? 'primary' : ''}" id="mailBtn" ${can ? '' : 'disabled'}>${mailPool().length ? (save.rice >= packCost() ? 'Open' : `Need ${packCost() - save.rice}`) : 'All found'}</button>`;
   $('mailBtn').onclick = openTreeMail;
   const ad = save.decks[save.active];
   $('peekTitle').textContent = 'Playing with';
@@ -867,32 +867,24 @@ $('navDecks').onclick = () => openDecks();
 $('navMail').onclick = () => openTreeMail();
 
 // ----- Tree Mail -----
-// Tree Mail draws from every unlocked card; the first slot is always one you don't own.
-// You never hold two copies (until variants are released): a duplicate is traded straight back for rice.
+// Every card in Tree Mail is one you don't own yet, and no card shows up twice in a pack (no duplicates until variants).
+// With fewer than 3 new cards left in your unlocked tiers, the pack holds what's left and costs less.
 const mailPool = () => CARDS.filter(c => !c.token && isOut(c.id) && tierUnlocked(CARD_TIER[c.id]) && !save.owned[c.id]);
+const packCost = () => Math.round(PACK_COST * Math.min(PACK_SIZE, mailPool().length) / PACK_SIZE);
 function rollPack() {
-  const pool = CARDS.filter(c => !c.token && isOut(c.id) && tierUnlocked(CARD_TIER[c.id]));
   const weight = c => ({ 1: 10, 2: 7, 3: 5, 4: 3 })[CARD_TIER[c.id]];
   const draw1 = list => { let r = Math.random() * list.reduce((sum, c) => sum + weight(c), 0); for (const c of list) { r -= weight(c); if (r <= 0) return c; } return list[list.length - 1]; };
-  const out = [];
-  for (let i = 0; i < PACK_SIZE; i++) {
-    const unowned = pool.filter(c => !save.owned[c.id] && !out.some(o => o.id === c.id));
-    const c = i === 0 && unowned.length ? draw1(unowned) : draw1(pool);
-    out.push({ id: c.id, isNew: !save.owned[c.id] && !out.some(o => o.id === c.id) });
-  }
+  const left = mailPool(), out = [];
+  while (out.length < PACK_SIZE && left.length) { const c = draw1(left); left.splice(left.indexOf(c), 1); out.push({ id: c.id, isNew: true }); }
   return out;
 }
 function openTreeMail() {
   if (!mailPool().length) { toast("You've found every card available right now. Rank up to unlock more."); return; }
-  if (save.rice < PACK_COST) { toast(`You need ${PACK_COST} rice. Win matches to earn more.`); return; }
-  save.rice -= PACK_COST;
+  const cost = packCost();
+  if (save.rice < cost) { toast(`You need ${cost} rice. Win matches to earn more.`); return; }
+  save.rice -= cost;
   const pulls = rollPack();
-  let refund = 0;
-  for (const p of pulls) {
-    if (p.isNew) { save.owned[p.id] = { n: 1, v: [] }; save.fresh = [...(save.fresh || []), p.id]; }
-    else refund += DUP_RICE; // no second copy is kept
-  }
-  save.rice += refund;
+  for (const p of pulls) { save.owned[p.id] = { n: 1, v: [] }; save.fresh = [...(save.fresh || []), p.id]; }
   persist();
   packScene(pulls);
 }
@@ -1863,7 +1855,7 @@ $('rulesBtn').onclick = () => {
     <li><b>Scenarios</b> resolve their effect and disappear.</li>
     <li><b>Play your idol</b> to double the jury votes at stake, starting next turn. Votes also double on the final turn.</li>
     <li><b>Quit</b> any time to lose only the current votes instead of risking more.</li>
-    <li><b>Rice</b> comes from wins only: 20 per win. Spend ${PACK_COST} on Tree Mail for ${PACK_SIZE} cards. A card you already own is traded back for ${DUP_RICE} rice; you never hold two copies.</li>
+    <li><b>Rice</b> comes from wins only: 20 per win. Spend ${PACK_COST} on Tree Mail for ${PACK_SIZE} cards, all ones you don't own yet. No duplicates.</li>
     <li><b>Tiers unlock with rank:</b> Pre-Merge at Swing Vote, The Merge at Merged, Legends at Juror.</li>
   </ul>
   <div class="btns"><span></span><button class="btn primary" id="closeRules">Got it</button></div>`;
