@@ -139,6 +139,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
 .backopt small { color: var(--torch); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; min-height: 12px; }
 
 .card.staged { opacity: .62; outline: 2px dashed var(--torch); outline-offset: -2px; }
+.card.staged.peek { opacity: .7; outline-color: var(--them); } /* Aubry: their turn-5 plays, shown before you commit */
 .card.flip { animation: flip .9s cubic-bezier(.2,.8,.3,1), revglow 2s ease-out; z-index: 3; }
 .fxlayer { position: fixed; inset: 0; pointer-events: none; z-index: 35; }
 .fnum { position: fixed; translate: -50% -50%; font-family: var(--display); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; text-shadow: 0 2px 6px rgba(0,0,0,.85), 0 0 2px #000; animation: rise 1.6s cubic-bezier(.2,.7,.3,1) both; }
@@ -711,6 +712,7 @@ const CARDS = [
   { id: 'jaison', name: 'Jaison Robinson', short: 'Jaison', cost: 1, power: 1, arch: 'alliance', held: true, text: "Ongoing: +5 influence if your side of this location is full." },
   { id: 'shane', name: 'Shane Powers', short: 'Shane', cost: 2, power: 5, arch: 'beast', held: true, text: 'On Reveal: Add his BlackBerry to your hand. Start of Turn: Snaps at a random other card here, either side: it gets -2 influence. With no one else here, he snaps at himself.' },
   { id: 'blackberry', name: 'BlackBerry', short: 'BlackBerry', cost: 1, power: 0, arch: 'strat', token: true, text: 'On Reveal: Your Shane Powers calms down and stops snapping for the rest of the game.' },
+  { id: 'aubry', name: 'Aubry Bracco', short: 'Aubry', cost: 2, power: 3, arch: 'strat', held: true, text: "Ongoing: On turn 5, you see your opponent's plays before you make yours." },
   { id: 'fakeidol', name: 'Fake Idol', short: 'Fake Idol', cost: 1, power: 0, arch: 'event', type: 'event', token: true, text: 'Scenario: Does nothing. Bob made it out of a stick.' },
   { id: 'goat', name: 'Goat', short: 'Goat', cost: 0, power: 0, arch: 'goat', token: true, text: 'Takes up a spot. Does nothing.' }
 ];
@@ -718,7 +720,7 @@ const CARD = Object.fromEntries(CARDS.map(c => [c.id, c]));
 // Ability types. Cards that fire when something happens keep the 'reaction' label.
 const KW = { reveal: 'On Reveal', ongoing: 'Ongoing', start: 'Start of Turn', end: 'End of Turn', objective: 'Objective', reaction: 'Reaction', none: 'No ability' };
 const CARD_KW = {
-  ongoing: ['erik', 'parvati', 'sandra', 'ozzy', 'rob', 'jeremy', 'hatch', 'kim', 'amber', 'tina', 'michele', 'colby', 'ben', 'earl', 'rudy', 'ethan', 'yul', 'dreamz', 'james', 'steph', 'nwhite'],
+  ongoing: ['aubry', 'erik', 'parvati', 'sandra', 'ozzy', 'rob', 'jeremy', 'hatch', 'kim', 'amber', 'tina', 'michele', 'colby', 'ben', 'earl', 'rudy', 'ethan', 'yul', 'dreamz', 'james', 'steph', 'nwhite'],
   reaction: ['natalie', 'rick', 'spencer'],
   end: ['tyson', 'ian'],
   none: ['joe', 'westman', 'holloway', 'goat'],
@@ -771,7 +773,7 @@ const CARD_TIER = {
   necklace: 1, shotdark: 1, nullifier: 1, extravote: 1, doordie: 1,
   rudy: 1, ethan: 1, lex: 1, vecepia: 1, robc: 1, chrisd: 1, terry: 1, yul: 1, yauman: 1, dreamz: 1, james: 1, bob: 1, steph: 1, ian: 1,
   tai: 1, wendell: 1, flint: 1, elisabeth: 1, holloway: 1, nwhite: 1,
-  sue: 2, denise: 2, lisi: 2, jaison: 2, shane: 2
+  sue: 2, denise: 2, lisi: 2, jaison: 2, shane: 2, aubry: 2
 };
 
 let RNG = Math.random;
@@ -2069,7 +2071,7 @@ function render() {
     const slot = (side, staged, them, hid) => {
       const cards = side.map(c => cardHTML(c, { pow: power(G, c), cls: c.uid === flashUid ? 'flip' : '' }));
       hid.forEach(c => cards.push(them ? backHTML(G.foeBack, 'hidback') : cardHTML(c, { cls: 'hidmine' })));
-      staged.forEach(s => cards.push(them ? backHTML(G.foeBack) : busy ? backHTML(G.myBack) : cardHTML(s.card, { cls: 'staged' })));
+      staged.forEach(s => cards.push(them ? (G.peekTurn === G.turn && !busy ? cardHTML(s.card, { cls: 'staged peek' }) : backHTML(G.foeBack)) : busy ? backHTML(G.myBack) : cardHTML(s.card, { cls: 'staged' })));
       const room = Math.max(cap(L), Math.min(4, cards.length));
       while (cards.length < room) cards.push('<div class="slot"></div>');
       const r = cards.slice(0, 4);
@@ -2160,12 +2162,17 @@ function beginTurn() {
   flushEvents(); sel = null; defaultDetail(); render(); animateBoard(snap);
   if (G.turn === G.lastTurn) pulse($('stakes'));
   if (G.players[0].energy > G.turn) pulse($('fire'));
+  // Aubry Bracco: on turn 5 the opponent commits first and you see it
+  if (G.turn === 5 && G.locs.some(L => !tented(L) && L.sides[0].some(c => c.id === 'aubry'))) {
+    botPlan(G, 1); G.peekTurn = G.turn; render();
+    logLine(G.players[1].staged.length ? `Aubry reads the room: ${BOT.name}'s plays are showing. Make yours.` : `Aubry reads the room: ${BOT.name} isn't playing anything this turn.`, 'me');
+  }
   if (botWantsQuit(G, 1)) { quit(G, 1); logLine(`${BOT.name} quit the game.`, 'them'); matchOver(); }
 }
 async function endTurn() {
   if (busy || G.over) return;
   busy = true; sel = null; quitArmed = false;
-  botPlan(G, 1);
+  if (G.peekTurn !== G.turn) botPlan(G, 1); // already planned (and shown) if Aubry peeked
   const foeIdol = botWantsIdol(G, 1) && playIdol(G, 1);
   if (foeIdol) logLine(`${BOT.name} plays an idol. Votes double next turn.`, 'them');
   render(); if (foeIdol) pulse($('stakes'));

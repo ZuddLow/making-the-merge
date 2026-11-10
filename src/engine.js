@@ -92,6 +92,7 @@ const CARDS = [
   { id: 'jaison', name: 'Jaison Robinson', short: 'Jaison', cost: 1, power: 1, arch: 'alliance', held: true, text: "Ongoing: +5 influence if your side of this location is full." },
   { id: 'shane', name: 'Shane Powers', short: 'Shane', cost: 2, power: 5, arch: 'beast', held: true, text: 'On Reveal: Add his BlackBerry to your hand. Start of Turn: Snaps at a random other card here, either side: it gets -2 influence. With no one else here, he snaps at himself.' },
   { id: 'blackberry', name: 'BlackBerry', short: 'BlackBerry', cost: 1, power: 0, arch: 'strat', token: true, text: 'On Reveal: Your Shane Powers calms down and stops snapping for the rest of the game.' },
+  { id: 'aubry', name: 'Aubry Bracco', short: 'Aubry', cost: 2, power: 3, arch: 'strat', held: true, text: "Ongoing: On turn 5, you see your opponent's plays before you make yours." },
   { id: 'fakeidol', name: 'Fake Idol', short: 'Fake Idol', cost: 1, power: 0, arch: 'event', type: 'event', token: true, text: 'Scenario: Does nothing. Bob made it out of a stick.' },
   { id: 'goat', name: 'Goat', short: 'Goat', cost: 0, power: 0, arch: 'goat', token: true, text: 'Takes up a spot. Does nothing.' }
 ];
@@ -99,7 +100,7 @@ const CARD = Object.fromEntries(CARDS.map(c => [c.id, c]));
 // Ability types. Cards that fire when something happens keep the 'reaction' label.
 const KW = { reveal: 'On Reveal', ongoing: 'Ongoing', start: 'Start of Turn', end: 'End of Turn', objective: 'Objective', reaction: 'Reaction', none: 'No ability' };
 const CARD_KW = {
-  ongoing: ['erik', 'parvati', 'sandra', 'ozzy', 'rob', 'jeremy', 'hatch', 'kim', 'amber', 'tina', 'michele', 'colby', 'ben', 'earl', 'rudy', 'ethan', 'yul', 'dreamz', 'james', 'steph', 'nwhite'],
+  ongoing: ['aubry', 'erik', 'parvati', 'sandra', 'ozzy', 'rob', 'jeremy', 'hatch', 'kim', 'amber', 'tina', 'michele', 'colby', 'ben', 'earl', 'rudy', 'ethan', 'yul', 'dreamz', 'james', 'steph', 'nwhite'],
   reaction: ['natalie', 'rick', 'spencer'],
   end: ['tyson', 'ian'],
   none: ['joe', 'westman', 'holloway', 'goat'],
@@ -152,7 +153,7 @@ const CARD_TIER = {
   necklace: 1, shotdark: 1, nullifier: 1, extravote: 1, doordie: 1,
   rudy: 1, ethan: 1, lex: 1, vecepia: 1, robc: 1, chrisd: 1, terry: 1, yul: 1, yauman: 1, dreamz: 1, james: 1, bob: 1, steph: 1, ian: 1,
   tai: 1, wendell: 1, flint: 1, elisabeth: 1, holloway: 1, nwhite: 1,
-  sue: 2, denise: 2, lisi: 2, jaison: 2, shane: 2
+  sue: 2, denise: 2, lisi: 2, jaison: 2, shane: 2, aubry: 2
 };
 
 let RNG = Math.random;

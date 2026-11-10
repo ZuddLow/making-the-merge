@@ -124,6 +124,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
 .backopt small { color: var(--torch); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; min-height: 12px; }
 
 .card.staged { opacity: .62; outline: 2px dashed var(--torch); outline-offset: -2px; }
+.card.staged.peek { opacity: .7; outline-color: var(--them); } /* Aubry: their turn-5 plays, shown before you commit */
 .card.flip { animation: flip .9s cubic-bezier(.2,.8,.3,1), revglow 2s ease-out; z-index: 3; }
 .fxlayer { position: fixed; inset: 0; pointer-events: none; z-index: 35; }
 .fnum { position: fixed; translate: -50% -50%; font-family: var(--display); font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; text-shadow: 0 2px 6px rgba(0,0,0,.85), 0 0 2px #000; animation: rise 1.6s cubic-bezier(.2,.7,.3,1) both; }
@@ -1439,7 +1440,7 @@ function render() {
     const slot = (side, staged, them, hid) => {
       const cards = side.map(c => cardHTML(c, { pow: power(G, c), cls: c.uid === flashUid ? 'flip' : '' }));
       hid.forEach(c => cards.push(them ? backHTML(G.foeBack, 'hidback') : cardHTML(c, { cls: 'hidmine' })));
-      staged.forEach(s => cards.push(them ? backHTML(G.foeBack) : busy ? backHTML(G.myBack) : cardHTML(s.card, { cls: 'staged' })));
+      staged.forEach(s => cards.push(them ? (G.peekTurn === G.turn && !busy ? cardHTML(s.card, { cls: 'staged peek' }) : backHTML(G.foeBack)) : busy ? backHTML(G.myBack) : cardHTML(s.card, { cls: 'staged' })));
       const room = Math.max(cap(L), Math.min(4, cards.length));
       while (cards.length < room) cards.push('<div class="slot"></div>');
       const r = cards.slice(0, 4);
@@ -1530,12 +1531,17 @@ function beginTurn() {
   flushEvents(); sel = null; defaultDetail(); render(); animateBoard(snap);
   if (G.turn === G.lastTurn) pulse($('stakes'));
   if (G.players[0].energy > G.turn) pulse($('fire'));
+  // Aubry Bracco: on turn 5 the opponent commits first and you see it
+  if (G.turn === 5 && G.locs.some(L => !tented(L) && L.sides[0].some(c => c.id === 'aubry'))) {
+    botPlan(G, 1); G.peekTurn = G.turn; render();
+    logLine(G.players[1].staged.length ? `Aubry reads the room: ${BOT.name}'s plays are showing. Make yours.` : `Aubry reads the room: ${BOT.name} isn't playing anything this turn.`, 'me');
+  }
   if (botWantsQuit(G, 1)) { quit(G, 1); logLine(`${BOT.name} quit the game.`, 'them'); matchOver(); }
 }
 async function endTurn() {
   if (busy || G.over) return;
   busy = true; sel = null; quitArmed = false;
-  botPlan(G, 1);
+  if (G.peekTurn !== G.turn) botPlan(G, 1); // already planned (and shown) if Aubry peeked
   const foeIdol = botWantsIdol(G, 1) && playIdol(G, 1);
   if (foeIdol) logLine(`${BOT.name} plays an idol. Votes double next turn.`, 'them');
   render(); if (foeIdol) pulse($('stakes'));
