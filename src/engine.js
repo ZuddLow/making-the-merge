@@ -93,7 +93,7 @@ const CARDS = [
   { id: 'shane', name: 'Shane Powers', short: 'Shane', cost: 2, power: 5, arch: 'beast', held: true, text: 'On Reveal: Add his BlackBerry to your hand. Start of Turn: Snaps at a random other card here, either side: it gets -2 influence. With no one else here, he snaps at himself.' },
   { id: 'blackberry', name: 'BlackBerry', short: 'BlackBerry', cost: 1, power: 0, arch: 'strat', token: true, text: 'On Reveal: Your Shane Powers calms down and stops snapping for the rest of the game.' },
   { id: 'aubry', name: 'Aubry Bracco', short: 'Aubry', cost: 2, power: 3, arch: 'strat', held: true, text: "Ongoing: On turn 5, you see your opponent's plays before you make yours." },
-  { id: 'brandon', name: 'Brandon Hantz', short: 'Brandon', cost: 6, power: 6, arch: 'beast', held: true, text: 'On Reveal: If this is your only card here, he dumps the rice: the other two locations are wrecked, every card there is removed from the game, and this location alone decides the match.' },
+  { id: 'brandon', name: 'Brandon Hantz', short: 'Brandon', cost: 6, power: 6, arch: 'beast', held: true, text: 'On Reveal: If this is your only card here, wreck the other locations.' },
   { id: 'fakeidol', name: 'Fake Idol', short: 'Fake Idol', cost: 1, power: 0, arch: 'event', type: 'event', token: true, text: 'Scenario: Does nothing. Bob made it out of a stick.' },
   { id: 'goat', name: 'Goat', short: 'Goat', cost: 0, power: 0, arch: 'goat', token: true, text: 'Takes up a spot. Does nothing.' }
 ];
