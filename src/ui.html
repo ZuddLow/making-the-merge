@@ -599,7 +599,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
   <div class="board" id="board"></div>
   <div class="hand" id="hand"></div>
   <div class="controls">
-    <button class="quit" id="quitBtn">Snuff torch</button>
+    <button class="quit" id="quitBtn">Lay down torch</button>
     <div class="fire" id="fire"></div>
     <button class="endbtn" id="endBtn"></button>
   </div>
@@ -1445,7 +1445,7 @@ function render() {
   $('foe').innerHTML = `<b>${esc(BOT.name)}</b><span>${foe.hand.length} in hand${G.gone.some(x => x.owner === 1) ? ` · ${G.gone.filter(x => x.owner === 1).length} out` : ''}</span>`;
   $('meChip').innerHTML = `<b>${esc(G.myName || 'You')}</b><span>${me.hand.length} in hand${G.gone.some(x => x.owner === 0) ? ` · ${G.gone.filter(x => x.owner === 0).length} out` : ''}</span>`;
 
-  $('quitBtn').innerHTML = G.over ? 'Home' : quitArmed ? `Snuff it?<small>lose ${G.stakes} vote${G.stakes === 1 ? '' : 's'}</small>` : 'Snuff torch<small>retreat</small>';
+  $('quitBtn').innerHTML = G.over ? 'Home' : quitArmed ? `Lay it down?<small>lose ${G.stakes} vote${G.stakes === 1 ? '' : 's'}</small>` : 'Lay down torch<small>quit</small>';
   $('quitBtn').className = 'quit' + (G.over ? ' home' : quitArmed ? ' arm' : '');
   const selCard = sel && me.hand.find(c => c.uid === sel);
   $('board').innerHTML = G.locs.map((L, li) => {
