@@ -260,6 +260,12 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
 .fire span { font-size: 10px; color: #ffe2b8; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
 .idolbtn { justify-self: stretch; min-height: 52px; background: var(--bark); border: 1px solid var(--a-idol); border-radius: 12px; font-size: 15px; line-height: 1.1; padding: 6px; text-transform: uppercase; letter-spacing: .04em; }
 .idolbtn small { display: block; font-size: 11px; letter-spacing: .06em; color: var(--sand-dim); text-transform: none; }
+.idolbtn { position: relative; justify-self: center; width: 62px; height: 62px; min-height: 0; padding: 0; background: none; border: 0; border-radius: 0; display: grid; place-items: center; }
+.idolbtn svg { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 10px rgba(212,164,58,.35)) drop-shadow(0 3px 4px rgba(0,0,0,.6)); }
+.idolbtn .stk { position: relative; margin-top: 16px; font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1; color: #2a1d06; font-variant-numeric: tabular-nums; }
+.idolbtn .pend { position: absolute; right: -10px; top: -4px; background: var(--ember); color: #fff; border-radius: 999px; font-size: 12px; font-weight: 700; padding: 2px 6px; box-shadow: 0 2px 4px rgba(0,0,0,.5); }
+.idolbtn.used svg { filter: drop-shadow(0 0 16px rgba(255,215,106,.75)) drop-shadow(0 3px 4px rgba(0,0,0,.6)); }
+.idolbtn:disabled { opacity: 1; }
 .endbtn { justify-self: stretch; min-height: 52px; background: var(--torch); color: #2a1503; border-radius: 12px; font-size: 17px; text-transform: uppercase; letter-spacing: .04em; line-height: 1.1; padding: 8px; }
 .endbtn small { display: block; font-size: 12px; letter-spacing: .06em; opacity: .8; }
 .endbtn:disabled, .idolbtn:disabled { opacity: .45; cursor: default; }
@@ -600,7 +606,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
 <section id="game" class="screen" hidden>
   <div class="topbar">
     <div class="foe" id="foe"></div>
-    <div class="stakes" id="stakes"></div>
     <button class="tbtn" id="recapBtn">Recap</button>
     <button class="tbtn" id="goneBtn">Out</button>
     <button class="quit" id="quitBtn">Quit</button>
@@ -1262,6 +1267,8 @@ const okBack = b => BACKS.some(x => x.id === b);
 const backName = b => (BACKS.find(x => x.id === b) || BACKS[0]).name;
 const backHTML = (b, cls = '') => `<div class="card back bk-${okBack(b) ? b : 'torch'} ${cls}"></div>`;
 const deckBack = d => (d && okBack(d.back)) ? d.back : save.defaultBack;
+// The idol that shows the stakes (same carved idol as the Hidden Idol card back)
+const IDOL_SVG = `<svg viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="idg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset=".55" stop-color="#d4a43a"/><stop offset="1" stop-color="#9a6b1a"/></linearGradient></defs><path d="M20 2c8 0 12.5 6 12.5 13.5V27c0 6.5-5.5 11-12.5 11S7.5 33.5 7.5 27V15.5C7.5 8 12 2 20 2z" fill="url(#idg)" stroke="#5a3d0c" stroke-width="1.2"/><path d="M7.5 18H4.5M35.5 18h-3" stroke="#d4a43a" stroke-width="2.2" stroke-linecap="round"/><rect x="12.5" y="11" width="5" height="3.4" rx="1.2" fill="#3b2708"/><rect x="22.5" y="11" width="5" height="3.4" rx="1.2" fill="#3b2708"/></svg>`;
 const PACK_COST = 100, PACK_SIZE = 3, DUP_RICE = 10;
 const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = ms => new Promise(r => setTimeout(r, reduceMotion() ? Math.min(ms, 120) : ms));
@@ -2077,8 +2084,7 @@ function render() {
   const me = G.players[0], foe = G.players[1];
   if (G.seen0) { me.hand.forEach(c => { if (G.myDeck.includes(c.id)) G.seen0.add(c.id); }); me.staged.forEach(x => G.seen0.add(x.card.id)); }
   $('foe').innerHTML = `<b>${BOT.name}</b><span>${BOT.style} · ${foe.hand.length} in hand</span>`;
-  const pend = G.pending !== G.stakes ? ` → <b>${G.pending}</b>` : '';
-  $('stakes').innerHTML = `Votes <b>${G.stakes}</b>${pend}`;
+
   $('goneBtn').innerHTML = `Out<b>${G.gone.length}</b>`;
   $('quitBtn').textContent = G.over ? 'Home' : quitArmed ? `Quit (−${G.stakes})?` : 'Quit';
   $('quitBtn').className = 'quit' + (G.over ? ' home' : quitArmed ? ' arm' : '');
@@ -2111,8 +2117,12 @@ function render() {
   $('hand').innerHTML = renderHand(me.hand);
   $('fire').innerHTML = `<b>${fireLeft(G, 0)}</b><span>fire</span>`;
   $('fire').setAttribute('aria-label', `${fireLeft(G, 0)} of ${me.energy} fire left`);
-  $('idolBtn').innerHTML = G.idol[0] ? 'Idol played' : 'Play idol<small>double votes</small>';
-  $('idolBtn').disabled = G.idol[0] || busy || G.over;
+  // Like Snap's cube: the idol shows what the game is worth; tap it to play your idol and double the votes
+  const pend = G.pending !== G.stakes ? G.pending : null;
+  $('idolBtn').innerHTML = `${IDOL_SVG}<b class="stk">${G.stakes}</b>${pend ? `<span class="pend">→${pend}</span>` : ''}`;
+  $('idolBtn').classList.toggle('used', !!G.idol[0]);
+  $('idolBtn').disabled = busy || G.over;
+  $('idolBtn').setAttribute('aria-label', `${G.stakes} vote${G.stakes === 1 ? '' : 's'} at stake${pend ? `, ${pend} next turn` : ''}. ${G.idol[0] ? 'Idol played.' : 'Tap to play your idol and double the votes.'}`);
   $('endBtn').innerHTML = G.over ? `Results<small>${G.result.quit === 1 ? BOT.name + ' quit' : G.result.winner === 0 ? 'You won' : G.result.winner === 1 ? BOT.name + ' won' : 'Tie'}</small>` : G.turn === 0 ? 'Get ready<small>The match is starting</small>' : `${busy ? 'Revealing…' : 'End turn'}<small>${G.turn === G.lastTurn ? 'Final turn · votes doubled' : `Turn ${G.turn} of ${G.lastTurn}`}</small>`;
   $('endBtn').disabled = busy;
 }
@@ -2179,7 +2189,7 @@ function beginTurn() {
   if (G.recap) G.recap = G.recap.filter(x => x.lines.length);
   const snap = boardSnap();
   flushEvents(); sel = null; defaultDetail(); render(); animateBoard(snap);
-  if (G.turn === G.lastTurn) pulse($('stakes'));
+  if (G.turn === G.lastTurn) pulse($('idolBtn'));
   if (G.players[0].energy > G.turn) pulse($('fire'));
   // Aubry Bracco: on turn 5 the opponent commits first and you see it
   if (G.turn === 5 && G.locs.some(L => !tented(L) && L.sides[0].some(c => c.id === 'aubry'))) {
@@ -2194,7 +2204,7 @@ async function endTurn() {
   if (G.peekTurn !== G.turn) botPlan(G, 1); // already planned (and shown) if Aubry peeked
   const foeIdol = botWantsIdol(G, 1) && playIdol(G, 1);
   if (foeIdol) logLine(`${BOT.name} plays an idol. Votes double next turn.`, 'them');
-  render(); if (foeIdol) pulse($('stakes'));
+  render(); if (foeIdol) pulse($('idolBtn'));
   await sleep(1100);
   let snap = boardSnap();
   for (const step of resolveTurn(G)) {
@@ -2383,7 +2393,7 @@ $('goneBtn').onclick = () => {
 };
 $('playBtn').onclick = startMatch;
 $('endBtn').onclick = () => { if (G && G.over) finish(); else endTurn(); };
-$('idolBtn').onclick = () => { if (!busy && playIdol(G, 0)) { logLine(G.turn === G.lastTurn ? 'You play your idol. Votes double!' : 'You play your idol. Votes double next turn.', 'me'); render(); pulse($('stakes')); } };
+$('idolBtn').onclick = () => { if (G.idol[0]) { toast(`Your idol is played. ${G.pending} votes ride on this game.`); return; } if (!busy && playIdol(G, 0)) { logLine(G.turn === G.lastTurn ? 'You play your idol. Votes double!' : 'You play your idol. Votes double next turn.', 'me'); render(); pulse($('idolBtn')); } };
 $('quitBtn').onclick = () => {
   if (G && G.over) { if (!busy) goHome(); return; }
   if (busy) return;
