@@ -124,7 +124,7 @@ const LOCS = [
   { id: 'fire', name: 'Fire-Making', text: 'Each player can have only 2 cards here.' },
   { id: 'camp', name: 'Day 1 Camp', text: 'No effect. Build a shelter.' },
   { id: 'island', name: 'Island of the Idols', text: 'End of each turn: cards here get +1 influence.' },
-  { id: 'flintreward', name: 'Flint Reward', text: 'Each card you play here gives you +1 fire next turn.' },
+  { id: 'flintreward', name: 'The Campfire', text: 'Each card you play here gives you +1 fire next turn.' },
   { id: 'outback', name: 'The Outback', text: 'When revealed, the game lasts 7 turns.' },
   { id: 'urn', name: 'The Voting Booth', text: 'Cards played here stay face-down until the game ends.' },
   { id: 'bench', name: 'Sit-Out Bench', text: "On Reveal abilities don't happen here." },
