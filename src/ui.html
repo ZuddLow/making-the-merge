@@ -1406,6 +1406,7 @@ function flushEvents() {
       case 'snap': say(ev.self ? 'Shane snaps at himself: −2 influence.' : `Shane snaps at ${CARD[ev.id].name}: −2 influence.`); break;
       case 'benched': say(`${CARD[ev.id].name} sits out on the bench: no On Reveal.`); break;
       case 'lisi': say(`Lisi Linares: ${G.locs[ev.b].revealed ? LOC[G.locs[ev.b].id].name : 'an unrevealed location'} and ${G.locs[ev.a].revealed ? LOC[G.locs[ev.a].id].name : 'an unrevealed location'} trade places. The cards stay put.`); break;
+      case 'twist': say(`Jeff Probst: “${ev.line}” ${ev.owner === 0 ? '' : '(' + BOT.name + ') '}${ev.text}`); break;
       case 'plan': say(ev.ok ? `Denise's plan works: the votes land on ${CARD[ev.id].name}, right on cue.` : "Denise's plan falls apart: there's no card to vote out."); break;
       case 'sue': say(ev.owner === 0 ? `Sue Hawk hands you a Rat and a Snake.` : `Sue Hawk hands ${BOT.name} a Rat and a Snake.`); break;
       case 'rat': say(ev.owner === 0 ? `The Rat gets into the rice: next turn you get +1 fire, ${BOT.name} gets −1.` : `${BOT.name}'s Rat gets into the rice: next turn you get −1 fire.`); break;
@@ -1745,10 +1746,12 @@ const tierOf = id => TIERS_INFO[CARD_TIER[id]] || { name: CARD[id] && CARD[id].t
 function gameQuickView(c, ctx = {}) {
   const d = CARD[c.id], tier = tierOf(c.id);
   const pow = ctx.pow != null ? ctx.pow : d.power;
+  // Jeff in your hand shows today's twist (your opponent can't see your hand)
+  const tw = c.id === 'jeff' && G && !G.over && c.owner === 0 && (ctx.where === 'hand' || ctx.where === 'staged') ? twistFor(G, 0) : null;
   $('insp').innerHTML = `${cardHTML(c, { pow: ctx.pow, cls: ctx.locked ? 'locked' : '' })}
     <div class="insp-txt"><div class="eyebrow">${KW[d.kw]} · ${tier.name}</div><h2>${esc(d.name)}</h2>
       <div class="stats">${d.cost} fire · ${pow} influence${pow !== d.power ? ` (base ${d.power})` : ''} · ${ARCH[d.arch]}</div>
-      <p class="ability">${d.text}</p>${c.idol ? '<p class="note">Holding a hidden idol.</p>' : ''}${ctx.where === 'staged' ? '<p class="note" style="color:var(--sand-dim)">Drag it back to your hand to take it back.</p>' : ''}${ctx.note ? `<p class="note" style="color:var(--sand-dim)">${ctx.note}</p>` : ''}</div>`;
+      ${tw ? `<p class="ability"><b>Today: “${esc(tw.line)}”</b> ${esc(tw.text)}</p><p class="note" style="color:var(--sand-dim)">Tomorrow brings a different twist. None repeats this game.</p>` : `<p class="ability">${d.text}</p>`}${c.idol ? '<p class="note">Holding a hidden idol.</p>' : ''}${ctx.where === 'staged' ? '<p class="note" style="color:var(--sand-dim)">Drag it back to your hand to take it back.</p>' : ''}${ctx.note ? `<p class="note" style="color:var(--sand-dim)">${ctx.note}</p>` : ''}</div>`;
   $('inspect').hidden = false;
 }
 function locQuickView(li) {

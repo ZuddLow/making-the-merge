@@ -29,7 +29,7 @@ const CARDS = [
   { id: 'blindside', name: 'Blindside', short: 'Blindside', cost: 4, power: 0, arch: 'event', type: 'event', text: 'Scenario: Vote out the strongest enemy card here.' },
   { id: 'kim', name: 'Kim Spradlin', short: 'Kim', cost: 5, power: 6, arch: 'beast', text: 'Ongoing: Enemy cards here have -1 influence.' },
   { id: 'dee', name: 'Dee Valladares', short: 'Dee', cost: 5, power: 5, arch: 'vote', text: 'On Reveal: Vote out the strongest enemy card here with 4 or less influence.' },
-  { id: 'jeff', name: 'Jeff Probst', short: 'Probst', cost: 6, power: 4, arch: 'host', text: 'On Reveal: The tribe has spoken. The weakest card at each other location is voted out.' },
+  { id: 'jeff', name: 'Jeff Probst', short: 'Probst', cost: 1, power: 2, arch: 'host', text: "On Reveal: Today's twist. It changes every turn, in a random order that never repeats in a game." },
   { id: 'westman', name: 'Tom Westman', short: 'Westman', cost: 6, power: 11, arch: 'beast', text: 'No ability.' },
   // ---- Batch 2 (tiers to be sorted later) ----
   { id: 'spencer', name: 'Spencer Bledsoe', short: 'Spencer', cost: 1, power: 1, arch: 'strat', text: 'When an enemy card is voted out, +1 influence.' },
@@ -165,12 +165,23 @@ const minBy = (a, f) => a.reduce((b, x) => (b == null || f(x) < f(b) ? x : b), n
 function mk(g, id, p) { return { uid: g.uid++, id, owner: p, perm: 0, idol: false, loc: -1 }; }
 function emit(g, ev) { g.events.push(ev); }
 
+// Jeff Probst's twists: shuffled into a fresh order for each player every game, one per turn, never repeating
+const TWISTS = [
+  { id: 'draw', line: 'Wanna know what you\'re playing for?', text: 'Draw a card.' },
+  { id: 'flint', line: 'Flint!', text: 'Next turn, you get +1 fire and your opponent gets -1.' },
+  { id: 'buffs', line: 'Drop your buffs.', text: 'Your weakest other card here and their weakest card here trade sides.' },
+  { id: 'immunity', line: 'Immunity is back up for grabs.', text: 'Your strongest card here gets a hidden idol.' },
+  { id: 'comein', line: 'Come on in, guys.', text: 'Your other cards here get +2 influence.' },
+  { id: 'fire', line: 'Fire-making.', text: 'Your weakest other card here faces their weakest card here: the lower one is voted out (a tie sends both).' },
+  { id: 'spoken', line: 'The tribe has spoken.', text: 'Vote out the strongest enemy card here with 5 or less influence.' },
+];
+const twistFor = (g, p) => { const o = g.players[p].twists || TWISTS.map((_, i) => i); return TWISTS[o[(Math.max(g.turn, 1) - 1) % o.length]]; };
 function newGame(deck0, deck1) {
   const g = { turn: 0, uid: 1, locs: [], players: [], votedOut: 0, stakes: 1, pending: 1, idol: [false, false],
     events: [], over: false, result: null, turnPlays: [[], []], outBy: [0, 0], gone: [], lastTurn: 6, finalDoubled: false, seq: 0 };
   g.locs = shuffle(LOCS.map(l => l.id)).slice(0, 3).map(id => ({ id, revealed: false, sides: [[], []], hid: [[], []], idolGiven: [false, false] }));
   [deck0, deck1].forEach((d, p) => {
-    g.players.push({ deck: shuffle(d.map(id => mk(g, id, p))), hand: [], staged: [], energy: 0, played: 0, events: 0, kellyArm: false, fireNext: 0, fireAlways: 0 });
+    g.players.push({ deck: shuffle(d.map(id => mk(g, id, p))), hand: [], staged: [], energy: 0, played: 0, events: 0, kellyArm: false, fireNext: 0, fireAlways: 0, twists: shuffle(TWISTS.map((_, i) => i)) });
   });
   for (let p = 0; p < 2; p++) draw(g, p, 3);
   return g;
@@ -335,14 +346,25 @@ function playEffects(g, c, li, p) {
       break;
     }
     case 'dee': { const t = maxBy(L.sides[op].filter(o => power(g, o) <= 4), o => power(g, o)); if (t) voteOut(g, t); break; }
-    case 'jeff':
-      g.locs.forEach((M, mi) => {
-        if (mi === li) return;
-        const all = [...M.sides[0], ...M.sides[1]]; if (!all.length) return;
-        const m = Math.min(...all.map(o => power(g, o)));
-        voteOut(g, pick(all.filter(o => power(g, o) === m)));
-      });
+    case 'jeff': {
+      const tw = twistFor(g, p), mine = L.sides[p], theirs = L.sides[op];
+      emit(g, { t: 'twist', owner: p, line: tw.line, text: tw.text });
+      if (tw.id === 'draw') draw(g, p);
+      else if (tw.id === 'flint') { g.players[p].fireNext += 1; g.players[op].fireNext -= 1; }
+      else if (tw.id === 'buffs') {
+        if (isImmunity(L)) break;
+        const a = minBy(mine.filter(o => o !== c && !fixedCard(o, g)), o => power(g, o)), b = minBy(theirs.filter(o => !fixedCard(o, g)), o => power(g, o));
+        if (a && b) { removeFrom(g, a); removeFrom(g, b); place(g, a, li, op); place(g, b, li, p); emit(g, { t: 'flip', uid: b.uid, id: b.id }); }
+      }
+      else if (tw.id === 'immunity') { const t = maxBy(mine, o => power(g, o)); if (t) { t.idol = true; emit(g, { t: 'gotidol', uid: t.uid, id: t.id }); } }
+      else if (tw.id === 'comein') mine.forEach(o => { if (o !== c) o.perm += 2; });
+      else if (tw.id === 'fire') {
+        const a = minBy(mine.filter(o => o !== c), o => power(g, o)), b = minBy(theirs, o => power(g, o));
+        if (a && b) { const pa = power(g, a), pb = power(g, b); if (pa <= pb) voteOut(g, a); if (pb <= pa) voteOut(g, b); }
+      }
+      else if (tw.id === 'spoken') { const t = maxBy(theirs.filter(o => power(g, o) <= 5), o => power(g, o)); if (t) voteOut(g, t); }
       break;
+    }
     case 'reward': L.sides[p].forEach(o => { if (o !== c) o.perm += 2; }); break;
     case 'wade': {
       if (occ(L, p) >= cap(L)) break;
@@ -582,4 +604,4 @@ function botWantsQuit(g, p) {
   return lost >= 2 && gap >= (g.turn === g.lastTurn ? 12 : 18);
 }
 
-if (typeof module !== 'undefined') module.exports = { occ, KW, TIERS_INFO, CARD_TIER, CARDS, CARD, LOCS, BOTS, STARTER, newGame, startTurn, resolveTurn, botPlan, botWantsIdol, botWantsQuit, playIdol, quit, stage, total, power, cap, standing, setRNG: f => { RNG = f; } };
+if (typeof module !== 'undefined') module.exports = { TWISTS, twistFor, occ, KW, TIERS_INFO, CARD_TIER, CARDS, CARD, LOCS, BOTS, STARTER, newGame, startTurn, resolveTurn, botPlan, botWantsIdol, botWantsQuit, playIdol, quit, stage, total, power, cap, standing, setRNG: f => { RNG = f; } };
