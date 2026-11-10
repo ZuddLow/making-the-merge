@@ -355,6 +355,7 @@ function playEffects(g, c, li, p) {
     case 'dee': { const t = maxBy(L.sides[op].filter(o => power(g, o) <= 4), o => power(g, o)); if (t) voteOut(g, t); break; }
     case 'jeff': {
       const tw = twistFor(g, p), mine = L.sides[p], theirs = L.sides[op];
+      c.twist = tw.id; c.twistTurn = g.turn; // remembered so the played card shows what he did
       emit(g, { t: 'twist', owner: p, line: tw.line, text: tw.text });
       if (tw.id === 'draw') draw(g, p);
       else if (tw.id === 'flint') g.players[p].fireNext += 1;
