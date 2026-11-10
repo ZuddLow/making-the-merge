@@ -95,6 +95,7 @@ const CARDS = [
   { id: 'aubry', name: 'Aubry Bracco', short: 'Aubry', cost: 2, power: 3, arch: 'strat', held: true, text: "Ongoing: On turn 5, you see your opponent's plays before you make yours." },
   { id: 'brandon', name: 'Brandon Hantz', short: 'Brandon', cost: 6, power: 6, arch: 'beast', held: true, text: 'On Reveal: If this is your only card here, wreck the other locations.' },
   { id: 'rodger', name: 'Rodger Bingham', short: 'Rodger', cost: 3, power: 2, arch: 'alliance', held: true, text: 'On Reveal: Flood this location. After next turn, no more cards can be played or moved here.' },
+  { id: 'fishbach', name: 'Stephen Fishbach', short: 'Fishbach', cost: 5, power: 4, arch: 'strat', held: true, text: "Ongoing: Cards can't be played here. They can still be moved here." },
   { id: 'fakeidol', name: 'Fake Idol', short: 'Fake Idol', cost: 1, power: 0, arch: 'event', type: 'event', token: true, text: 'Scenario: Does nothing. Bob made it out of a stick.' },
   { id: 'goat', name: 'Goat', short: 'Goat', cost: 0, power: 0, arch: 'goat', token: true, text: 'Takes up a spot. Does nothing.' }
 ];
@@ -102,7 +103,7 @@ const CARD = Object.fromEntries(CARDS.map(c => [c.id, c]));
 // Ability types. Cards that fire when something happens keep the 'reaction' label.
 const KW = { reveal: 'On Reveal', ongoing: 'Ongoing', start: 'Start of Turn', end: 'End of Turn', objective: 'Objective', reaction: 'Reaction', none: 'No ability' };
 const CARD_KW = {
-  ongoing: ['aubry', 'erik', 'parvati', 'sandra', 'ozzy', 'rob', 'jeremy', 'hatch', 'kim', 'amber', 'tina', 'michele', 'colby', 'ben', 'earl', 'rudy', 'ethan', 'yul', 'dreamz', 'james', 'steph', 'nwhite'],
+  ongoing: ['fishbach', 'aubry', 'erik', 'parvati', 'sandra', 'ozzy', 'rob', 'jeremy', 'hatch', 'kim', 'amber', 'tina', 'michele', 'colby', 'ben', 'earl', 'rudy', 'ethan', 'yul', 'dreamz', 'james', 'steph', 'nwhite'],
   reaction: ['natalie', 'rick', 'spencer'],
   end: ['tyson', 'ian'],
   none: ['joe', 'westman', 'holloway', 'goat'],
@@ -155,7 +156,7 @@ const CARD_TIER = {
   necklace: 1, shotdark: 1, nullifier: 1, extravote: 1, doordie: 1,
   rudy: 1, ethan: 1, lex: 1, vecepia: 1, robc: 1, chrisd: 1, terry: 1, yul: 1, yauman: 1, dreamz: 1, james: 1, bob: 1, steph: 1, ian: 1,
   tai: 1, wendell: 1, flint: 1, elisabeth: 1, holloway: 1, nwhite: 1,
-  sue: 2, denise: 2, lisi: 2, jaison: 2, shane: 2, aubry: 2, brandon: 3, rodger: 2
+  sue: 2, denise: 2, lisi: 2, jaison: 2, shane: 2, aubry: 2, brandon: 3, rodger: 2, fishbach: 3
 };
 
 let RNG = Math.random;
@@ -201,8 +202,10 @@ const hidesAt = L => (live(L) && L.id === 'urn') || (!tented(L) && L.sides.some(
 const live = L => L.revealed && !L.off && !L.wrecked; // a revealed location whose effect is working this turn (a Snake switches them off)
 function capOf(L) { if (live(L)) { if (L.id === 'exile') return 1; if (L.id === 'fire') return 2; } return 4; } // the location's size
 function cap(L) { return L.wrecked || L.closed ? 0 : capOf(L); } // room for new cards: none once wrecked or flooded shut
+const lockedAt = L => !tented(L) && L.sides.some(sd => sd.some(o => o.id === 'fishbach')); // Fishbach: no new plays here (moves still allowed)
 function space(g, li, p) {
   const L = g.locs[li];
+  if (lockedAt(L)) return 0;
   return cap(L) - occ(L, p) - g.players[p].staged.filter(s => s.loc === li).length;
 }
 function fireLeft(g, p) { const P = g.players[p]; return P.energy - P.staged.reduce((s, x) => s + CARD[x.card.id].cost, 0); }
@@ -482,7 +485,7 @@ function* resolveTurn(g) {
     while (P.staged.length) {
       const { card, loc } = P.staged.shift();
       const L = g.locs[loc];
-      if (occ(L, p) >= cap(L)) { if (P.hand.length < 7) P.hand.push(card); else P.deck.unshift(card); emit(g, { t: 'nofit', uid: card.uid, id: card.id, owner: p }); continue; }
+      if (occ(L, p) >= cap(L) || (lockedAt(L) && card.id !== 'fishbach')) { if (P.hand.length < 7) P.hand.push(card); else P.deck.unshift(card); emit(g, { t: 'nofit', uid: card.uid, id: card.id, owner: p }); continue; }
       card.prevUid = P.lastUid; P.lastUid = card.uid; // Denise targets the card you played just before it
       if (hidesAt(L)) {
         card.owner = p; card.loc = loc; card.turn = g.turn; card.seq = g.seq++;

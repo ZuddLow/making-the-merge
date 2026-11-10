@@ -204,6 +204,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
 .loc.hidden h3 { color: var(--sand-dim); }
 .loc.flooded { box-shadow: inset 0 -38px 30px -14px rgba(70,140,220,.55), inset 0 0 0 1px rgba(147,182,220,.6); }
 .floodtag { position: absolute; left: 50%; bottom: 26px; translate: -50% 0; white-space: nowrap; font-size: 8.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #0d1a29; background: #93b6dc; border-radius: 999px; padding: 1px 7px; z-index: 2; }
+.floodtag.locktag { background: var(--sand); color: #1b1a14; }
 .loc.wrecked { background: repeating-linear-gradient(135deg, rgba(217,84,47,.10) 0 8px, transparent 8px 16px), #120d0b; border-color: #5a2a1c; opacity: .8; }
 .loc.wrecked h3 { color: var(--ember); } .loc.wrecked .tot { opacity: .35; }
 .loc.snaked { filter: saturate(.35) brightness(.8); box-shadow: inset 0 0 0 1px rgba(143,219,154,.45); }
@@ -1460,7 +1461,7 @@ function render() {
       <div class="loc ${L.revealed ? '' : 'hidden'} ${L.wrecked ? 'wrecked' : ''} ${L.floodAfter != null && !L.wrecked ? 'flooded' : ''} ${L.off ? 'snaked' : ''} ${newLoc === li ? 'new' : ''} ${hasArt(a) && !L.wrecked ? 'art' : ''}" data-loc="${li}"${L.wrecked ? '' : locGameStyle(a)}>
         <span class="tot t ${t > y ? 'win' : ''}">${t}${L.hid[1].length ? '<i>+?</i>' : ''}</span>
         <h3>${L.wrecked ? 'Wrecked' : L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.wrecked ? 'Brandon dumped the rice here.' : L.revealed ? def.text : `Reveals on turn ${revealTurn(li)}.`}</p>
-        ${L.floodAfter != null && !L.wrecked ? `<span class="floodtag">${L.closed ? 'Flooded' : G.turn >= L.floodAfter ? 'Last turn here' : 'Floods after T' + L.floodAfter}</span>` : ''}
+        ${lockedAt(L) ? '<span class="floodtag locktag">Locked</span>' : ''}${L.floodAfter != null && !L.wrecked && !lockedAt(L) ? `<span class="floodtag">${L.closed ? 'Flooded' : G.turn >= L.floodAfter ? 'Last turn here' : 'Floods after T' + L.floodAfter}</span>` : ''}
         <span class="tot y ${y > t ? 'win' : ''}">${y}${L.hid[0].length ? '<i>+?</i>' : ''}</span></div>
       <div class="slots ${slotCls(L, 0)}">${slot(L.sides[0], me.staged.filter(s => s.loc === li), false, L.hid[0])}</div></div>`;
   }).join('');
