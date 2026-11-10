@@ -168,7 +168,7 @@ function emit(g, ev) { g.events.push(ev); }
 // Jeff Probst's twists: shuffled into a fresh order for each player every game, one per turn, never repeating
 const TWISTS = [
   { id: 'draw', line: 'Wanna know what you\'re playing for?', text: 'Draw a card.' },
-  { id: 'flint', line: 'Flint!', text: 'Next turn, you get +1 fire and your opponent gets -1.' },
+  { id: 'flint', line: 'Flint!', text: 'Next turn, you get +1 fire.' },
   { id: 'buffs', line: 'Drop your buffs.', text: 'Your weakest other card here and their weakest card here trade sides.' },
   { id: 'immunity', line: 'Immunity is back up for grabs.', text: 'Your strongest card here gets a hidden idol.' },
   { id: 'comein', line: 'Come on in, guys.', text: 'Your other cards here get +2 influence.' },
@@ -350,7 +350,7 @@ function playEffects(g, c, li, p) {
       const tw = twistFor(g, p), mine = L.sides[p], theirs = L.sides[op];
       emit(g, { t: 'twist', owner: p, line: tw.line, text: tw.text });
       if (tw.id === 'draw') draw(g, p);
-      else if (tw.id === 'flint') { g.players[p].fireNext += 1; g.players[op].fireNext -= 1; }
+      else if (tw.id === 'flint') g.players[p].fireNext += 1;
       else if (tw.id === 'buffs') {
         if (isImmunity(L)) break;
         const a = minBy(mine.filter(o => o !== c && !fixedCard(o, g)), o => power(g, o)), b = minBy(theirs.filter(o => !fixedCard(o, g)), o => power(g, o));
