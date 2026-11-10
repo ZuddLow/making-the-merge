@@ -328,14 +328,6 @@ function voteOut(g, c) {
 
 function playEffects(g, c, li, p) {
   const L = g.locs[li], def = CARD[c.id], op = 1 - p;
-  if (live(L)) {
-    if (L.id === 'loved') draw(g, p);
-    if (L.id === 'flintreward') g.players[p].fireNext += 1;
-    if (def.type !== 'event') {
-      if (L.id === 'feast') c.perm += 2;
-      if (L.id === 'idolspot' && !L.idolGiven[p]) { L.idolGiven[p] = true; c.idol = true; emit(g, { t: 'gotidol', uid: c.uid, id: c.id }); }
-    }
-  }
   const benched = live(L) && L.id === 'bench' && (def.kw === 'reveal' || /On Reveal/.test(def.text)); // includes cards like Shane with an On Reveal half // On Reveal cards (Scenarios too) sit this one out
   if (benched) emit(g, { t: 'benched', uid: c.uid, id: c.id });
   if (!benched) switch (c.id) {
@@ -464,6 +456,15 @@ function playEffects(g, c, li, p) {
     }
     case 'rocks': { const all = [...L.sides[0], ...L.sides[1]].filter(o => o !== c); if (all.length) voteOut(g, pick(all)); break; }
     case 'blindside': { const t = maxBy(L.sides[op], o => power(g, o)); if (t) voteOut(g, t); break; }
+  }
+  // Then the location reacts to the play: a card's own ability always happens first
+  if (live(L)) {
+    if (L.id === 'loved') draw(g, p);
+    if (L.id === 'flintreward') g.players[p].fireNext += 1;
+    if (def.type !== 'event' && c.loc === li && c.owner === p) { // still here (not wandered off, flipped or voted out by its own ability)
+      if (L.id === 'feast') c.perm += 2;
+      if (L.id === 'idolspot' && !L.idolGiven[p]) { L.idolGiven[p] = true; c.idol = true; emit(g, { t: 'gotidol', uid: c.uid, id: c.id }); }
+    }
   }
   const P = g.players[p];
   if (c.id === 'kelly') { if (!benched) P.kellyArm = true; }
