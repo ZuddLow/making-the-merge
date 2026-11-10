@@ -202,6 +202,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
 .loc p { margin: 0; font-size: 11px; line-height: 1.2; color: var(--sand-dim); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .loc.art p { color: #d7cfb6; text-shadow: 0 1px 2px rgba(0,0,0,.9); }
 .loc.hidden h3 { color: var(--sand-dim); }
+.loc.wrecked { background: repeating-linear-gradient(135deg, rgba(217,84,47,.10) 0 8px, transparent 8px 16px), #120d0b; border-color: #5a2a1c; opacity: .8; }
+.loc.wrecked h3 { color: var(--ember); } .loc.wrecked .tot { opacity: .35; }
 .loc.snaked { filter: saturate(.35) brightness(.8); box-shadow: inset 0 0 0 1px rgba(143,219,154,.45); }
 .loc.snaked::after { content: "Snaked"; position: absolute; left: 50%; bottom: 26px; translate: -50% 0; white-space: nowrap; font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #0c120f; background: #8fdb9a; border-radius: 999px; padding: 1px 7px; }
 .loc.snaked p { text-decoration: line-through; text-decoration-color: rgba(143,219,154,.7); }
@@ -1406,6 +1408,7 @@ function flushEvents() {
       case 'calm': say(ev.owner === 0 ? 'You hand Shane his BlackBerry. He calms down for good.' : `${BOT.name}'s Shane gets his BlackBerry and calms down.`); break;
       case 'snap': say(ev.self ? 'Shane snaps at himself: −2 influence.' : `Shane snaps at ${CARD[ev.id].name}: −2 influence.`); break;
       case 'benched': say(`${CARD[ev.id].name} sits out on the bench: no On Reveal.`); break;
+      case 'brandon': say(ev.ok ? 'Brandon dumps the rice! The other two camps are wrecked. This location decides it all.' : "Brandon isn't alone here, so there's no meltdown."); break;
       case 'lisi': say(`Lisi Linares: ${G.locs[ev.b].revealed ? LOC[G.locs[ev.b].id].name : 'an unrevealed location'} and ${G.locs[ev.a].revealed ? LOC[G.locs[ev.a].id].name : 'an unrevealed location'} trade places. The cards stay put.`); break;
       case 'twist': say(`Jeff Probst: “${ev.line}” ${ev.owner === 0 ? '' : '(' + BOT.name + ') '}${ev.text}`); break;
       case 'plan': say(ev.ok ? `Denise's plan works: the votes land on ${CARD[ev.id].name}, right on cue.` : "Denise's plan falls apart: there's no card to vote out."); break;
@@ -1451,9 +1454,9 @@ function render() {
     const fin = G.over && G.result.quit < 0 ? (y > t ? 'final-win' : t > y ? 'final-lose' : '') : '';
     return `<div class="lane ${ok ? 'ok' : ''} ${fin}" data-li="${li}" tabindex="0" aria-label="Location ${li + 1}">
       <div class="slots them ${slotCls(L, 1)}">${slot(L.sides[1], foe.staged.filter(s => s.loc === li), true, L.hid[1])}</div>
-      <div class="loc ${L.revealed ? '' : 'hidden'} ${L.off ? 'snaked' : ''} ${newLoc === li ? 'new' : ''} ${hasArt(a) ? 'art' : ''}" data-loc="${li}"${locGameStyle(a)}>
+      <div class="loc ${L.revealed ? '' : 'hidden'} ${L.wrecked ? 'wrecked' : ''} ${L.off ? 'snaked' : ''} ${newLoc === li ? 'new' : ''} ${hasArt(a) && !L.wrecked ? 'art' : ''}" data-loc="${li}"${L.wrecked ? '' : locGameStyle(a)}>
         <span class="tot t ${t > y ? 'win' : ''}">${t}${L.hid[1].length ? '<i>+?</i>' : ''}</span>
-        <h3>${L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.revealed ? def.text : `Reveals on turn ${revealTurn(li)}.`}</p>
+        <h3>${L.wrecked ? 'Wrecked' : L.revealed ? def.name : 'Unrevealed'}</h3><p>${L.wrecked ? 'Brandon dumped the rice here.' : L.revealed ? def.text : `Reveals on turn ${revealTurn(li)}.`}</p>
         <span class="tot y ${y > t ? 'win' : ''}">${y}${L.hid[0].length ? '<i>+?</i>' : ''}</span></div>
       <div class="slots ${slotCls(L, 0)}">${slot(L.sides[0], me.staged.filter(s => s.loc === li), false, L.hid[0])}</div></div>`;
   }).join('');
@@ -1719,7 +1722,7 @@ $('recapBtn').onclick = () => {
 };
 $('goneBtn').onclick = () => {
   if (!G) return;
-  const why = { out: 'Voted out', scenario: 'Scenario used', stolen: 'Stolen', left: 'Bowed out' };
+  const why = { out: 'Voted out', scenario: 'Scenario used', stolen: 'Stolen', left: 'Bowed out', removed: 'Removed' };
   const group = (p, title) => {
     const list = G.gone.filter(x => x.owner === p);
     return `<div class="gone"><h3>${title} <span class="eyebrow">${list.length}</span></h3>${list.length ? `<div class="gonegrid">${list.map(x => `<button class="tile" data-gone="${x.uid}">${cardHTML(x.id)}<span>${why[x.why]} · T${x.turn}</span></button>`).join('')}</div>` : '<p>None yet.</p>'}</div>`;
