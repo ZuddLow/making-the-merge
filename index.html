@@ -111,6 +111,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
 .card .cost { background: var(--torch); color: #2a1503; }
 .card .pow { background: var(--sand); color: #1b1a14; }
 .card .pow.up { background: #8fdb9a; } .card .pow.down { background: #f08c78; }
+/* Fire is a flame, influence is a speech bubble (influence = persuasion) */
+.card .cost, .card .pow { border-radius: 0; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; padding: 0; }
+.card .cost { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 30'%3E%3Cpath d='M12 0C14 6 21.5 9.5 21.5 18.5 21.5 25 17.2 30 12 30S2.5 25 2.5 18.5C2.5 13 5.5 10 8 6.5 8.6 9.5 10 11.5 11.2 11.5 11 7.5 10.8 3.5 12 0Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 30'%3E%3Cpath d='M12 0C14 6 21.5 9.5 21.5 18.5 21.5 25 17.2 30 12 30S2.5 25 2.5 18.5C2.5 13 5.5 10 8 6.5 8.6 9.5 10 11.5 11.2 11.5 11 7.5 10.8 3.5 12 0Z'/%3E%3C/svg%3E"); background: linear-gradient(180deg, #ffd889 0%, #f3a23c 50%, #d9542f 100%); width: clamp(15px, 26cqw, 36px); min-width: 0; height: clamp(19px, 32cqw, 45px); padding-top: 8cqw; top: 2%; left: 3%; }
+.card .pow { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 28'%3E%3Cpath d='M7 0H23Q30 0 30 7V15Q30 22 23 22H13L6.5 28 7.5 22H7Q0 22 0 15V7Q0 0 7 0Z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 28'%3E%3Cpath d='M7 0H23Q30 0 30 7V15Q30 22 23 22H13L6.5 28 7.5 22H7Q0 22 0 15V7Q0 0 7 0Z'/%3E%3C/svg%3E"); width: clamp(17px, 29cqw, 40px); min-width: 0; height: clamp(16px, 27cqw, 37px); padding-bottom: 5cqw; top: 3%; right: 3%; }
+
 .card .idolmark { position: absolute; left: 50%; top: 3px; translate: -50% 0; width: 12px; height: 12px; rotate: 45deg; background: var(--a-idol); box-shadow: 0 0 6px #ffd76a; border: 1px solid #fff3c4; z-index: 1; }
 .card.ev { box-shadow: inset 0 0 0 2px rgba(236,226,198,.5); }
 .a-alliance { --ac: var(--a-alliance); } .a-vote { --ac: var(--a-vote); } .a-idol { --ac: var(--a-idol); } .a-beast { --ac: var(--a-beast); }
