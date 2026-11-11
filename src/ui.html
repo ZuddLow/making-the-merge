@@ -498,6 +498,46 @@ h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap
 .pf-slot.g2 .card { box-shadow: 0 0 0 2px #93b6dc, 0 0 34px rgba(147,182,220,.6); }
 .pf-slot.g3 .card { box-shadow: 0 0 0 2px #b691ec, 0 0 40px rgba(182,145,236,.7); }
 .pf-slot.g4 .card { box-shadow: 0 0 0 3px #ffd76a, 0 0 50px 8px rgba(255,215,106,.75); }
+/* Tree Mail reveal: a special card back used only while opening */
+.card.revealback { --tc: var(--torch); display: grid; place-items: center; align-content: center; gap: 6%; overflow: hidden;
+  background: radial-gradient(65% 50% at 50% 42%, rgba(255,214,120,.28), transparent 70%), repeating-conic-gradient(from 0deg at 50% 42%, rgba(255,214,120,.07) 0 6deg, transparent 6deg 12deg), linear-gradient(170deg, #22331f, #0d150f 70%);
+  box-shadow: inset 0 0 0 2px #c9a046, inset 0 0 0 6px #142016, inset 0 0 0 7px rgba(201,160,70,.55), 0 10px 30px rgba(0,0,0,.6); }
+.card.revealback .rb-idol { width: 46%; aspect-ratio: 1; display: block; filter: drop-shadow(0 0 14px rgba(255,214,120,.7)); animation: rb-breathe 2.2s ease-in-out infinite; }
+.card.revealback .rb-idol svg { width: 100%; height: 100%; }
+.card.revealback b { font-family: var(--display); font-weight: 400; font-size: clamp(14px, 11cqw, 26px); color: #f3d38a; letter-spacing: .06em; text-shadow: 0 2px 6px rgba(0,0,0,.7); }
+.card.revealback .rb-shine { position: absolute; inset: -30%; background: linear-gradient(115deg, transparent 42%, rgba(255,240,200,.35) 50%, transparent 58%); animation: rb-shine 2.6s ease-in-out infinite; pointer-events: none; }
+.card.revealback .rb-corner { position: absolute; width: 14%; aspect-ratio: 1; border: 2px solid rgba(201,160,70,.8); rotate: 45deg; }
+.card.revealback .rb-corner:nth-of-type(1) { top: 5%; left: 50%; translate: -50% 0; } .card.revealback .rb-corner:nth-of-type(2) { bottom: 5%; left: 50%; translate: -50% 0; }
+@keyframes rb-breathe { 50% { transform: scale(1.06); filter: drop-shadow(0 0 22px rgba(255,214,120,.95)); } }
+@keyframes rb-shine { 0% { translate: -60% 0; } 60%, 100% { translate: 60% 0; } }
+/* the top card hints at its rarity before you flip it */
+.pf-slot.tease .card { animation: tease 1.4s ease-in-out infinite; }
+.pf-slot.tease.t2 .card { --tc: #93b6dc; } .pf-slot.tease.t3 .card { --tc: #b691ec; } .pf-slot.tease.t4 .card { --tc: #ffd76a; }
+@keyframes tease { 50% { box-shadow: inset 0 0 0 2px #c9a046, inset 0 0 0 6px #142016, inset 0 0 0 7px rgba(201,160,70,.55), 0 0 34px 6px color-mix(in srgb, var(--tc) 70%, transparent); } }
+.pf-slot.windup { animation: windup .32s ease-in both; }
+@keyframes windup { 30% { transform: rotate(-3deg) scale(1.03); } 60% { transform: rotate(3deg) scale(1.05); } 100% { transform: scale(1.08); } }
+.pf-slot.face { animation: revealpop .5s cubic-bezier(.2,1.4,.4,1); }
+@keyframes revealpop { 0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: none; } }
+.pf-burst { --bc: #f3a23c; position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; z-index: 5; }
+.pf-burst.behind { z-index: -1; } .pf-stack { isolation: isolate; }
+.pf-burst.t2 { --bc: #93b6dc; } .pf-burst.t3 { --bc: #b691ec; } .pf-burst.t4 { --bc: #ffd76a; }
+.pf-burst .rays { position: absolute; left: -290px; top: -290px; width: 580px; height: 580px; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--bc) 55%, transparent) 0 7deg, transparent 7deg 20deg);
+  -webkit-mask: radial-gradient(circle, #000 25%, transparent 68%); mask: radial-gradient(circle, #000 25%, transparent 68%);
+  animation: rays 1.3s ease-out forwards; }
+.pf-burst .flash { position: absolute; left: -210px; top: -210px; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, color-mix(in srgb, var(--bc) 80%, transparent) 25%, transparent 65%); animation: flash .7s ease-out forwards; }
+.pf-burst .ring { position: absolute; left: -60px; top: -60px; width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--bc); animation: ring .8s ease-out forwards; }
+.pf-burst .ember { position: absolute; left: 0; top: 0; width: var(--s); height: var(--s); border-radius: 50%; background: radial-gradient(circle, #fff, var(--bc) 55%, transparent 70%); box-shadow: 0 0 8px var(--bc);
+  animation: ember var(--t) cubic-bezier(.15,.7,.3,1) var(--dl) forwards; opacity: 0; }
+@keyframes rays { 0% { opacity: 0; transform: scale(.3) rotate(0); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.25) rotate(40deg); } }
+@keyframes flash { 0% { opacity: 1; transform: scale(.2); } 100% { opacity: 0; transform: scale(1.4); } }
+@keyframes ring { 0% { opacity: .9; transform: scale(.4); } 100% { opacity: 0; transform: scale(3.2); } }
+@keyframes ember { 0% { opacity: 1; transform: rotate(var(--a)) translateX(0) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateX(var(--d)) translateY(30px) scale(.3); } }
+.packfx.shake { animation: pfshake .45s cubic-bezier(.36,.07,.19,.97); }
+@keyframes pfshake { 15%, 55% { transform: translate(-6px, 2px); } 35%, 75% { transform: translate(6px, -2px); } 90% { transform: translate(-2px, 1px); } }
+.pf-badge.new { animation: stamp .45s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes stamp { 0% { transform: scale(2.4) rotate(-8deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .card.revealback .rb-idol, .card.revealback .rb-shine, .pf-slot.tease .card, .pf-slot.windup, .pf-burst *, .packfx.shake, .pf-badge.new { animation: none !important; } .pf-burst { display: none; } }
 @keyframes rise { from { opacity: 0; translate: 0 70px; transform: scale(.85); } }
 @keyframes pop { from { transform: scale(.92); } 60% { transform: scale(1.05); } }
 .pf-info { display: grid; gap: 4px; min-height: 110px; align-content: start; }
@@ -909,6 +949,29 @@ function openTreeMail() {
 const WRAPS = [{ id: 'jungle', name: 'Jungle' }, { id: 'ember', name: 'Ember' }, { id: 'lagoon', name: 'Lagoon' }, { id: 'dusk', name: 'Dusk' }];
 const TIER_GLOW = { 1: 'g1', 2: 'g2', 3: 'g3', 4: 'g4' };
 const packHTML = (w, cls = '') => `<div class="pack wrap-${w} ${cls}"><div class="pk-flap"></div><div class="pk-tear"><i></i></div><div class="pk-body"><span class="pk-flame"></span><b>Tree Mail</b><small>${PACK_SIZE} cards</small></div></div>`;
+// The moment a Tree Mail card turns over: flash, light rays, a shockwave ring and a spray of embers.
+// Rarer tiers get more embers, their own color and a screen shake; Legends get a second wave.
+function revealBurst(stack, tier) {
+  if (reduceMotion()) return;
+  const wave = (delay, count, reach) => setTimeout(() => {
+    const back = document.createElement('div'); back.className = 'pf-burst behind t' + tier; // light behind the card
+    back.innerHTML = '<i class="flash"></i><i class="rays"></i><i class="ring"></i>'; stack.prepend(back);
+    setTimeout(() => back.remove(), 1700);
+    const b = document.createElement('div'); b.className = 'pf-burst t' + tier; // embers in front
+    let h = '';
+    for (let k = 0; k < count; k++) {
+      const a = Math.round(Math.random() * 360), d = Math.round(reach * (0.45 + Math.random() * 0.75)), sz = (3 + Math.random() * 6).toFixed(1);
+      h += `<i class="ember" style="--a:${a}deg;--d:${d}px;--s:${sz}px;--t:${(0.7 + Math.random() * 0.7).toFixed(2)}s;--dl:${(Math.random() * 0.12).toFixed(2)}s"></i>`;
+    }
+    b.innerHTML = h; stack.appendChild(b);
+    setTimeout(() => b.remove(), 1700);
+  }, delay);
+  const n = { 1: 18, 2: 28, 3: 40, 4: 56 }[tier] || 18, reach = { 1: 120, 2: 150, 3: 180, 4: 210 }[tier] || 120;
+  wave(0, n, reach);
+  if (tier >= 4) wave(260, n, reach * 1.2);
+  if (tier >= 3) { const fx = $('packfx'); fx.classList.remove('shake'); void fx.offsetWidth; fx.classList.add('shake'); }
+  try { if (navigator.vibrate) navigator.vibrate(tier >= 3 ? [30, 40, 60] : 25); } catch (e) {}
+}
 function packScene(pulls) {
   const fx = $('packfx'), stage = $('pfStage'), bottom = $('pfBottom');
   fx.hidden = false; fx.className = 'packfx';
@@ -946,10 +1009,14 @@ function packScene(pulls) {
   // 3. Reveal one card at a time
   function revealStage() {
     let i = 0;
-    stage.innerHTML = `<div class="pf-reveal"><div class="pf-stack" id="pfStack">${pulls.map((_, k) => `<div class="pf-slot" style="--k:${k}"><div class="card mailcard"></div></div>`).join('')}</div><div class="pf-info" id="pfInfo"></div></div>`;
+    const back = `<div class="card revealback"><i class="rb-shine"></i><i class="rb-corner"></i><i class="rb-corner"></i><span class="rb-idol">${IDOL_SVG}</span><b>Tree Mail</b></div>`;
+    // the stack is drawn bottom-up, so the last slot is the first card you flip
+    stage.innerHTML = `<div class="pf-reveal"><div class="pf-stack" id="pfStack">${pulls.map((_, k) => `<div class="pf-slot" style="--k:${k}">${back}</div>`).join('')}</div><div class="pf-info" id="pfInfo"></div></div>`;
     bottom.innerHTML = `<div class="pf-row" id="pfRow"></div>`;
     const stack = $('pfStack'), info = $('pfInfo');
     let flipped = false;
+    const tease = () => { const slots = stack.querySelectorAll('.pf-slot'), top = slots[slots.length - 1]; if (top && i < pulls.length) top.classList.add('tease', 't' + CARD_TIER[pulls[i].id]); };
+    setTimeout(tease, 700);
     const head = () => setHead(`Card ${Math.min(i + 1, pulls.length)} of ${pulls.length}`, flipped ? 'Tap to set it aside' : 'Tap to flip');
     head();
     stack.onclick = () => {
@@ -957,20 +1024,25 @@ function packScene(pulls) {
       const slots = [...stack.querySelectorAll('.pf-slot')], top = slots[slots.length - 1];
       const p = pulls[i], tier = CARD_TIER[p.id];
       if (!flipped) {
-        top.classList.add('flipping');
+        if (top.classList.contains('windup') || top.classList.contains('flipping')) return;
+        top.classList.remove('tease'); top.classList.add('windup');
+        setTimeout(() => {
+        top.classList.remove('windup'); top.classList.add('flipping');
         setTimeout(() => {
           top.innerHTML = cardHTML(p.id);
           top.classList.remove('flipping'); top.classList.add('face', TIER_GLOW[tier]);
+          revealBurst(stack, tier);
           info.innerHTML = `<span class="pf-badge ${p.isNew ? 'new' : 'dup'}">${p.isNew ? 'New!' : `Duplicate · +${DUP_RICE} rice`}</span><b>${esc(CARD[p.id].name)}</b><small>${TIERS_INFO[tier].name} · ${KW[CARD[p.id].kw]} · ${CARD[p.id].cost} fire · ${CARD[p.id].power} influence</small><p class="pf-ability">${CARD[p.id].text}</p>`;
           flipped = true; head();
         }, reduceMotion() ? 0 : 220);
+        }, reduceMotion() ? 0 : 320);
       } else {
         top.classList.add('away');
         $('pfRow').insertAdjacentHTML('beforeend', `<button class="pf-mini" data-id="${p.id}">${cardHTML(p.id)}<span class="${p.isNew ? 'new' : ''}">${p.isNew ? 'New' : `+${DUP_RICE}`}</span></button>`);
         info.innerHTML = '';
         setTimeout(() => top.remove(), reduceMotion() ? 0 : 300);
         i++; flipped = false;
-        if (i >= pulls.length) summary(); else head();
+        if (i >= pulls.length) summary(); else { head(); setTimeout(tease, 350); }
       }
     };
   }
