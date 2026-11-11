@@ -1478,7 +1478,7 @@ function flushEvents() {
       case 'steal': say(ev.owner === 0 ? `Rupert steals ${who(ev)} for your tribe!` : `Rupert steals ${who(ev)} from your deck!`); break;
       case 'shot': say(ev.ok ? 'Shot in the Dark: it hits! Idols for everyone here.' : 'Shot in the Dark: not an idol.'); break;
       case 'nullified': say('Idol Nullifier: enemy idols are worthless now.'); break;
-      case 'dod': say(ev.ok ? `Do or Die: ${who(ev)} survives and gets +6!` : `Do or Die: ${who(ev)} picked the wrong box.`); break;
+      case 'dod': say(ev.ok ? 'MrBeast flips… heads! Everything here doubles!' : `MrBeast flips… tails. ${who(ev)} is voted out.`); break;
       case 'tyson': say('Tyson votes himself out.'); break;
       case 'urnreveal': say(`The votes are read: ${ev.n} face-down card${ev.n > 1 ? 's' : ''} turn over.`); break;
       case 'outback': newLoc = ev.li; say('Elisabeth turns this location into The Outback.'); break;

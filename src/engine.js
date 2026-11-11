@@ -60,7 +60,7 @@ const CARDS = [
   { id: 'shotdark', name: 'Shot in the Dark', short: 'Shot', cost: 1, power: 0, arch: 'event', type: 'event', text: 'Scenario: 1 in 3 chance to give each of your cards here a hidden idol.' },
   { id: 'nullifier', name: 'Idol Nullifier', short: 'Nullifier', cost: 2, power: 0, arch: 'event', type: 'event', text: 'Scenario: Remove every hidden idol from enemy cards, at all locations.' },
   { id: 'extravote', name: 'Extra Vote', short: 'Extra Vote', cost: 2, power: 0, arch: 'event', type: 'event', text: 'Scenario: Your strongest card here gets +4 influence.' },
-  { id: 'doordie', name: 'Do or Die', short: 'Do or Die', cost: 3, power: 0, arch: 'event', type: 'event', text: "Scenario: Coin flip. Your strongest card here gets +6 influence, or it's voted out." },
+  { id: 'doordie', name: 'MrBeast Coin Flip', short: 'Coin Flip', cost: 3, power: 0, arch: 'event', type: 'event', text: 'Scenario: Coin flip. Heads: double your total influence here. Tails: your strongest card here is voted out.' },
   // ---- Batch 4: early era (Seasons 1-20) ----
   { id: 'rudy', name: 'Rudy Boesch', short: 'Rudy', cost: 3, power: 5, arch: 'beast', text: "Ongoing: Can't be moved, flipped or switched to the other side." },
   { id: 'ethan', name: 'Ethan Zohn', short: 'Ethan', cost: 4, power: 5, arch: 'alliance', text: "Ongoing: Your other cards here can't drop below their printed influence." },
@@ -446,7 +446,12 @@ function playEffects(g, c, li, p) {
     case 'shotdark': if (RNG() < 1 / 3) { L.sides[p].forEach(o => { if (o !== c) o.idol = true; }); emit(g, { t: 'shot', ok: true }); } else emit(g, { t: 'shot', ok: false }); break;
     case 'nullifier': g.locs.forEach(M => M.sides[op].forEach(o => { o.idol = false; })); emit(g, { t: 'nullified' }); break;
     case 'extravote': { const t = maxBy(L.sides[p].filter(o => o !== c), o => power(g, o)); if (t) t.perm += 4; break; }
-    case 'doordie': { const t = maxBy(L.sides[p].filter(o => o !== c), o => power(g, o)); if (t) { if (RNG() < 0.5) { t.perm += 6; emit(g, { t: 'dod', ok: true, id: t.id }); } else { emit(g, { t: 'dod', ok: false, id: t.id }); voteOut(g, t); } } break; }
+    case 'doordie': { // MrBeast's coin flip: heads doubles everything you have here right now, tails costs you your best card
+      const mine = L.sides[p].filter(o => o !== c); if (!mine.length) break;
+      if (RNG() < 0.5) { mine.forEach(o => { o.perm += power(g, o); }); emit(g, { t: 'dod', ok: true }); }
+      else { const t = maxBy(mine, o => power(g, o)); emit(g, { t: 'dod', ok: false, id: t.id, owner: t.owner }); voteOut(g, t); }
+      break;
+    }
     case 'tribeswap': {
       if (isImmunity(L)) break;
       const t = maxBy(L.sides[op].filter(o => !fixedCard(o, g)), o => power(g, o)); if (!t) break;
