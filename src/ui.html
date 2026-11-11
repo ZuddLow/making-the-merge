@@ -1465,7 +1465,8 @@ function flushEvents() {
       case 'loc': newLoc = ev.li; say(`${LOC[G.locs[ev.li].id].name} is revealed.`); break;
       case 'out': say(`${who(ev)} has been voted out.`); break;
       case 'idol': say(`${who(ev)} plays a hidden idol. Safe!`); break;
-      case 'safe': say(`${who(ev)} is safe.`); break;
+      case 'safe': say(ev.why === 'immunity' ? `${who(ev)} is safe: nobody can be voted out at Immunity Challenge.` : ev.why === 'jeremy' ? `${who(ev)} is safe: Jeremy protects his side.` : `${who(ev)} can't be voted out.`); break;
+      case 'pinned': say(`Immunity Challenge holds everyone in place: ${CARD[ev.id] ? CARD[ev.id].short : 'that'}'s move doesn't happen.`); break;
       case 'back': say(`${who(ev)} is back in the game with +3.`); break;
       case 'edge': say(`${who(ev)} returns from the Edge.`); break;
       case 'gotidol': say(`${who(ev)} found a hidden idol.`); break;
